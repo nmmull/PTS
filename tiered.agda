@@ -1,24 +1,19 @@
-module PTS where
+-------------------------------------------------------------------------------
+-- Tiered Pure Type Systems
+--
+-------------------------------------------------------------------------------
 
-open import Data.Nat using (ℕ; _≰_; _<_; _≤_; _≤?_; _+_; suc; zero; pred; z≤n; s≤s)
-open import Data.Nat.Properties using (1+n≰n; ≤∧≢⇒<; m≤n⇒m≤1+n)
-open import Data.String using (String)
-open import Data.Bool using (Bool; T)
-open import Data.Bool.Properties using (T?)
-open import Data.Product using (_×_; Σ; Σ-syntax; proj₁; proj₂; _,_)
-open import Data.Unit using (⊤; tt)
-open import Data.Empty using (⊥; ⊥-elim)
-open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
-open import Relation.Nullary using (yes; no; ¬_)
-open import Relation.Nullary.Decidable using (map′)
-import Relation.Binary.PropositionalEquality as Eq
+module Tiered where
+
+open import Data.Nat using (ℕ; suc; pred; _<_; _≤?_)
+open import Data.Unit using (⊤)
+open import Data.Empty using (⊥)
+open import Relation.Nullary using (yes; no)
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Binary.Definitions using (DecidableEquality)
-open Eq using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans)
-open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; _∎; step-≡)
 
-m≤n⇒m≤1+n : ∀ {m n} → m ≤ n → m ≤ suc n
-m≤n⇒m≤1+n z≤n       = z≤n
-m≤n⇒m≤1+n (s≤s m≤n) = s≤s (m≤n⇒m≤1+n m≤n)
+-------------------------------------------------------------------------------
+-- Grammar (with DeBruijn Indices and explicit sort annotations)
 
 data Term : Set where
   s : ℕ → Term
@@ -26,6 +21,9 @@ data Term : Set where
   λˢ_∷_⇒_ : ℕ → Term → Term → Term
   Πˢ_∷_⇒_ : ℕ → Term → Term → Term
   _§_§_ : Term → ℕ → Term → Term
+
+-------------------------------------------------------------------------------
+-- Substitution and Lifting
 
 lift-map : (ℕ → ℕ) → ℕ → Term → Term
 lift-map f = go where
@@ -43,6 +41,128 @@ lift-map f = go where
 
 ↓ : Term → Term
 ↓ = lift-map pred 0
+
+data Variable : Set where
+  _♯_ : ℕ → ℕ → Variable
+
+_≟_ : DecidableEquality Variable
+(x ♯ i) ≟ (y ♯ j) with x Data.Nat.≟ y with i Data.Nat.≟ j
+...                  | yes refl          | yes refl = yes refl
+...                  | no prf            | _        = no λ { refl → prf refl }
+...                  | _                 | no prf   = no λ { refl → prf refl } 
+
+_[_/_] : Term → Term → Variable → Term
+s i [ n / y ♯ j ] = s i
+(x ♯ i) [ n / y ♯ j ] with (x ♯ i) ≟ (y ♯ j) 
+...                      | yes _  = n
+...                      | _ = x ♯ i
+(λˢ i ∷ a ⇒ m) [ n / y ♯ j ] = λˢ i ∷ (a [ n / y ♯ j ]) ⇒ (m [ ↑ n / (suc y) ♯ j ])
+(Πˢ i ∷ a ⇒ b) [ n / y ♯ j ] = Πˢ i ∷ (a [ n / y ♯ j ]) ⇒ (b [ ↑ n / (suc y) ♯ j ])
+(m₁ § i § m₂) [ n / y ♯ j ] = (m₁ [ n / y ♯ j ]) § i § (m₂ [ n / y ♯ j ])
+
+_[_/_]′ : Term → Term → Variable → Term
+m [ n / x ]′ = ↓ (m [ ↑ n / x ]) 
+
+data _⟶ᵇ_ : Term → Term → Set where
+  β-rule : {i : ℕ} → {a m n : Term} →
+    ((λˢ i ∷ a ⇒ m) § i § n) ⟶ᵇ (m [ n / 0 ♯ i ]′)
+  comp-pi₁ : {i : ℕ} → {a b a' : Term} →
+    a ⟶ᵇ a' →
+    (Πˢ i ∷ a ⇒ b) ⟶ᵇ (Πˢ i ∷ a' ⇒ b)
+  comp-pi₂ : {i : ℕ} → {a b b' : Term} →
+    b ⟶ᵇ b' →
+    (Πˢ i ∷ a ⇒ b) ⟶ᵇ (Πˢ i ∷ a ⇒ b')
+  comp-lam₁ : {i : ℕ} → {a b a' : Term} →
+    a ⟶ᵇ a' →
+    (λˢ i ∷ a ⇒ b) ⟶ᵇ (λˢ i ∷ a' ⇒ b)
+  comp-lam₂ : {i : ℕ} → {a b b' : Term} →
+    b ⟶ᵇ b' →
+    (λˢ i ∷ a ⇒ b) ⟶ᵇ (λˢ i ∷ a ⇒ b')
+  comp-app₁ : {i : ℕ} → {a b a' : Term} →
+    a ⟶ᵇ a' →
+    (a § i § b) ⟶ᵇ (a' § i § b)
+  comp-app₂ : {i : ℕ} → {a b b' : Term} →
+    b ⟶ᵇ b'
+    → (a § i § b) ⟶ᵇ (a § i § b')
+
+-------------------------------------------------------------------------------
+-- β-Reduction
+
+data _↠ᵇ_ : Term → Term → Set where
+  β-refl : {i : ℕ} → {m : Term} → m ↠ᵇ m
+  β-step : {i : ℕ} → {m n n' : Term} → m ⟶ᵇ n → n ↠ᵇ n' → m ↠ᵇ n'
+
+↠ᵇ-trans : {m n p : Term} →
+  m ↠ᵇ n →
+  n ↠ᵇ p →
+  m ↠ᵇ p
+↠ᵇ-trans β-refl np = np
+↠ᵇ-trans (β-step {i} mn nn') np = β-step {i} mn (↠ᵇ-trans nn' np)
+
+-------------------------------------------------------------------------------
+-- Typing Inference
+
+data Context : Set where
+  ∅ : Context
+  _,_∷_ : Context → Variable → Term → Context
+
+_∉_ : Variable → Context → Set
+(x ♯ i) ∉ ∅ = ⊤
+(x ♯ i) ∉ (Γ , y ♯ j ∷ _) with (x ♯ i) ≟ (y ♯ j)
+...                          | yes _ = (x ♯ i) ∉ Γ
+...                          | no  _ = ⊥
+
+postulate top-sort : ℕ
+postulate rule : ℕ → ℕ → Set
+
+data _⊢_∷_ : Context → Term → Term → Set where
+
+  axiom : {i : ℕ} →
+    i < top-sort →
+    -----------------------------------
+    ∅ ⊢ s i ∷ s (suc i)
+
+  var-intro : {x i : ℕ} → {Γ : Context} → {a : Term} →
+    (x ♯ i) ∉ Γ →
+    Γ ⊢ a ∷ s i →
+    -----------------------------------
+    (Γ , x ♯ i ∷ a) ⊢ x ♯ i ∷ a
+
+  weaken : {x i j : ℕ} → {Γ : Context} → {m a b : Term} →
+    (x ♯ j) ∉ Γ →
+    Γ ⊢ m ∷ a →
+    Γ ⊢ b ∷ s j →
+    -----------------------------------
+    (Γ , x ♯ j ∷ b) ⊢ m ∷ a
+
+  pi-intro : {x i j : ℕ} → {Γ : Context} → {a b : Term} →
+    rule i j →
+    Γ ⊢ a ∷ s i →
+    (Γ , x ♯ i ∷ a) ⊢ b [ x ♯ i / 0 ♯ i ]′ ∷ s j →
+    -----------------------------------
+    Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j
+
+  abstr : {x i j : ℕ} → {Γ : Context} → {m a b : Term} →
+    (Γ , x ♯ i ∷ a) ⊢ m [ x ♯ i / 0 ♯ i ]′ ∷ (b [ x ♯ i / 0 ♯ i ]′) →
+    Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j →
+    -----------------------------------
+    Γ ⊢ (λˢ i ∷ a ⇒ m) ∷ (Πˢ i ∷ a ⇒ b)
+
+  app : {i : ℕ} → {Γ : Context} → {m n a b c : Term} →
+    Γ ⊢ m ∷ (Πˢ i ∷ a ⇒ b) →
+    Γ ⊢ n ∷ a →
+    c ≡ b [ n / 0 ♯ i ]′ →
+    -----------------------------------
+    Γ ⊢ (m § i § n) ∷ c
+
+  conv : {i : ℕ} → {Γ : Context} → {m a b : Term} →
+    Γ ⊢ m ∷ a →
+    Γ ⊢ b ∷ s i →
+    b ↠ᵇ a →
+    -----------------------------------
+    Γ ⊢ m ∷ b
+
+{-
 
 lift-drop-lemma : {x : ℕ} → {m : Term} →
   lift-map pred x (lift-map suc x m) ≡ m
@@ -376,4 +496,5 @@ t = λ⁰ "x" ∷ s⁰ 0 ⇒ (⟪ "x" ⟫⁰ $⁰ ⟪ "z" ⟫⁰)
 
 test : ⦉ t ⦊ ≡ λ¹ s¹ 0 ⇒ (b⟪ 0 ⟫¹ $¹ f⟪ "z" ⟫¹)
 test = refl
+-}
 -}

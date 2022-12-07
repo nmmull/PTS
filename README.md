@@ -1,6 +1,6 @@
-# Pure Type Systems in Agda
+# Tiered Pure Type Systems in Agda
 
-This is a small personal project in which I am formalizing pure type systems in Agda.
-My hope is that I will be able to formalize some of the simple results on tiered pure type systems.
+This is a small personal project in which I am formalizing tiered pure type systems in Agda.
+My hope is that I will be able to formalize some of my results.
 
-More to come I hope.
+More to come.
