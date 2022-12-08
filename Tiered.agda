@@ -22,6 +22,19 @@ data Term : Set where
   Πˢ_∷_⇒_ : ℕ → Term → Term → Term
   _§_§_ : Term → ℕ → Term → Term
 
+data Variable : Set where
+  _♯_ : ℕ → ℕ → Variable
+
+_≟_ : DecidableEquality Variable
+(x ♯ i) ≟ (y ♯ j) with x Data.Nat.≟ y with i Data.Nat.≟ j
+...                  | yes refl          | yes refl = yes refl
+...                  | no prf            | _        = no λ { refl → prf refl }
+...                  | _                 | no prf   = no λ { refl → prf refl } 
+
+data _∈_ : Variable → Term → Set where
+  x∈x : {x i : ℕ} → (x ♯ i) ∈ (x ♯ i)
+  x∈λ : {i : ℕ} → {x : Variable} → {a m : Term} → x ∈ a → x ∈ (λˢ i ∷ a ⇒ m) 
+
 -------------------------------------------------------------------------------
 -- Substitution and Lifting
 
@@ -42,15 +55,6 @@ lift-map f = go where
 ↓ : Term → Term
 ↓ = lift-map pred 0
 
-data Variable : Set where
-  _♯_ : ℕ → ℕ → Variable
-
-_≟_ : DecidableEquality Variable
-(x ♯ i) ≟ (y ♯ j) with x Data.Nat.≟ y with i Data.Nat.≟ j
-...                  | yes refl          | yes refl = yes refl
-...                  | no prf            | _        = no λ { refl → prf refl }
-...                  | _                 | no prf   = no λ { refl → prf refl } 
-
 _[_/_] : Term → Term → Variable → Term
 s i [ n / y ♯ j ] = s i
 (x ♯ i) [ n / y ♯ j ] with (x ♯ i) ≟ (y ♯ j) 
@@ -61,7 +65,10 @@ s i [ n / y ♯ j ] = s i
 (m₁ § i § m₂) [ n / y ♯ j ] = (m₁ [ n / y ♯ j ]) § i § (m₂ [ n / y ♯ j ])
 
 _[_/_]′ : Term → Term → Variable → Term 
-m [ n / x ]′ = ↓ (m [ ↑ n / x ]) 
+m [ n / x ]′ = ↓ (m [ ↑ n / x ])
+
+-------------------------------------------------------------------------------
+-- β-Reduction
 
 data _⟶ᵇ_ : Term → Term → Set where
   β-rule : {i : ℕ} → {a m n : Term} →
@@ -85,9 +92,6 @@ data _⟶ᵇ_ : Term → Term → Set where
     b ⟶ᵇ b'
     → (a § i § b) ⟶ᵇ (a § i § b')
 
--------------------------------------------------------------------------------
--- β-Reduction
-
 data _↠ᵇ_ : Term → Term → Set where
   β-refl : {i : ℕ} → {m : Term} → m ↠ᵇ m
   β-step : {i : ℕ} → {m n n' : Term} → m ⟶ᵇ n → n ↠ᵇ n' → m ↠ᵇ n'
@@ -106,11 +110,12 @@ data Context : Set where
   ∅ : Context
   _,_∷_ : Context → Variable → Term → Context
 
-_∉_ : Variable → Context → Set
-(x ♯ i) ∉ ∅ = ⊤
-(x ♯ i) ∉ (Γ , y ♯ j ∷ _) with (x ♯ i) ≟ (y ♯ j)
-...                          | yes _ = (x ♯ i) ∉ Γ
-...                          | no  _ = ⊥
+data _∉_ : Variable → Context → Set where
+  ∉∅ : {x : Variable} → x ∉ ∅
+  ∉Γ : {x y : Variable} → {Γ : Context} → {a : Term} →
+    x ∉ Γ →
+    x ≡ y →
+    x ∉ (Γ , y ∷ a)
 
 postulate top-sort : ℕ
 postulate rule : ℕ → ℕ → Set
@@ -131,12 +136,12 @@ data _⊢_∷_ : Context → Term → Term → Set where
     -----------------------------------
     (Γ , x ♯ i ∷ a) ⊢ x ♯ i ∷ a
 
-  weaken : {x i j : ℕ} → {Γ : Context} → {m a b : Term} →
-    (x ♯ j) ∉ Γ →
+  weaken : {x i : ℕ} → {Γ : Context} → {m a b : Term} →
+    (x ♯ i) ∉ Γ →
     Γ ⊢ m ∷ a →
-    Γ ⊢ b ∷ s j →
+    Γ ⊢ b ∷ s i →
     -----------------------------------
-    (Γ , x ♯ j ∷ b) ⊢ m ∷ a
+    (Γ , x ♯ i ∷ b) ⊢ m ∷ a
 
   pi-intro : {x i j : ℕ} → {Γ : Context} → {a b : Term} →
     rule i j →
