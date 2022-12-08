@@ -30,26 +30,33 @@ sᵢ≢sⱼ⇒i≢j neq refl = neq refl
 sᵢ≡sⱼ→i≡j : {i j : ℕ} → s i ≡ s j → i ≡ j
 sᵢ≡sⱼ→i≡j refl = refl
 
+∉Γ-strengthen : {x y : 𝕍} → {Γ : Context} → {a : 𝕋} →
+  x ∉ (Γ , y ∷ a) →
+  x ≢ y →
+  x ∉ Γ
+∉Γ-strengthen (∉Γ x∉Γ x≡y) x≢y = ⊥-elim (x≢y x≡y)
+
 -------------------------------------------------------------------------------
 -- Lifting and Dropping
 
-lift-drop-lemma : {x : ℕ} → {m : Term} →
+lift-drop-lemma : {x : ℕ} → {m : 𝕋} →
   lift-map pred x (lift-map suc x m) ≡ m
 lift-drop-lemma {x} {m} = go x m where
-  l : ℕ → Term → Term
+  l : ℕ → 𝕋 → 𝕋
   l = lift-map suc
-  d : ℕ → Term → Term
+  d : ℕ → 𝕋 → 𝕋
   d = lift-map pred
-  go : (x : ℕ) → (m : Term) →
+  go : (x : ℕ) → (m : 𝕋) →
     d x (l x m) ≡ m
-  go x (s i) = refl
-  go x (y ♯ i) with x ≤? y
-  go x (y ♯ i)    | yes p' with x ≤? suc y
-  go x (y ♯ i)    | yes p'    | yes _ = refl
-  go x (y ♯ i)    | yes p'    | no ¬p = ⊥-elim (¬p (m≤n⇒m≤1+n p'))
-  go x (y ♯ i)    | no ¬p with x ≤? y
-  go x (y ♯ i)    | no ¬p    | yes p = ⊥-elim (¬p p)
-  go x (y ♯ i)    | no ¬p    | no _ = refl
+  go x (s _) = refl
+  go x b⟨ _ ♯ _ ⟩ = refl
+  go x f⟨ y ♯ _ ⟩ with x ≤? y
+  go x f⟨ y ♯ _ ⟩    | yes p' with x ≤? suc y
+  go x f⟨ y ♯ _ ⟩    | yes p'    | yes _ = refl
+  go x f⟨ y ♯ _ ⟩    | yes p'    | no ¬p = ⊥-elim (¬p (m≤n⇒m≤1+n p'))
+  go x f⟨ y ♯ _ ⟩    | no ¬p with x ≤? y
+  go x f⟨ y ♯ _ ⟩    | no ¬p    | yes p = ⊥-elim (¬p p)
+  go x f⟨ y ♯ _ ⟩    | no ¬p    | no _ = refl
   go x (λˢ i ∷ m ⇒ n) =
     begin
       d x (l x (λˢ i ∷ m ⇒ n))
@@ -77,27 +84,38 @@ lift-drop-lemma {x} {m} = go x m where
       m § i § n
     ∎
 
-↓↑-id : {n : Term} →
+↓↑-id : {n : 𝕋} →
   ↓ (↑ n) ≡ n
 ↓↑-id = lift-drop-lemma {x = 0}
 
 -------------------------------------------------------------------------------
 -- Substitution Lemma
 
-∉Γ-strengthen : {x y : Variable} → {Γ : Context} → {a : Term} →
-  x ∉ (Γ , y ∷ a) →
-  x ≢ y →
-  x ∉ Γ
-∉Γ-strengthen (∉Γ x∉Γ x≡y) x≢y = ⊥-elim (x≢y x≡y)
-
-sub-comm : {x y : Variable} → {m n p : Term} →
+sub-comm : {x y : 𝕍} → {m n p : 𝕋} →
   m [ n / x ] [ p / y ] ≡ m [ p / y ] [ n [ p / y ] / x ]
-sub-comm = {!   !}
+sub-comm {m = s _} = refl
+sub-comm {m = f⟨ x ♯ x₁ ⟩} = {!   !}
+sub-comm {m = b⟨ x ♯ x₁ ⟩} = refl
+sub-comm {x = x ♯ i} {y = y ♯ j} {m = λˢ k ∷ a ⇒ m} =
+  cong₂ (λ { a m → λˢ k ∷ a ⇒ m })
+    (sub-comm {m = a})
+    {!   !}
+sub-comm {m = Πˢ x ∷ m ⇒ m₁} = {!   !}
+sub-comm {m = m₁ § _ § m₂} =
+  cong₂ (λ { m₁ m₂ → m₁ § _ § m₂ })
+    (sub-comm {m = m₁})
+    (sub-comm {m = m₂})
 
-sub-sub-lemma : {x i y j : ℕ} → {m n : Term} →
-  m [ x ♯ i / y ♯ j ] [ n / x ♯ i ] ≡ m [ n / y ♯ j ]
+sub-sub : {x i y j : ℕ} → {m n : 𝕋} →
+  m [ f⟨ x ♯ i ⟩  /0♯ j ] [ n / x ♯ i ] ≡ m [ n /0♯ j ]
+sub-sub = {!   !}
+
+
+sub-sub-lemma : {x i y j : ℕ} → {m n : 𝕋} →
+  m [ f⟨ x ♯ i ⟩ / y ♯ j ] [ n / x ♯ i ] ≡ m [ n / y ♯ j ]
 sub-sub-lemma {m = s x} = refl
-sub-sub-lemma {x} {i} {y} {j} {m = z ♯ k} with (z ♯ k) ≟ (y ♯ j)
+sub-sub-lemma {m = b⟨ _ ♯ _ ⟩} = refl
+sub-sub-lemma {x} {i} {y} {j} {m = f⟨ z ♯ k ⟩} with (z ♯ k) ≟ (y ♯ j)
 ...                                          | yes _ = {!  !}
 ...                                          | no _ = {!  !}
 sub-sub-lemma {m = λˢ j ∷ a ⇒ m} =
@@ -113,7 +131,7 @@ sub-sub-lemma {m = m § j § n} =
     (sub-sub-lemma {m = m})
     (sub-sub-lemma {m = n})
 
-sub-noop₁ : {x i : ℕ} → {Γ : Context} → {m n a : Term} →
+sub-noop₁ : {x i : ℕ} → {Γ : Context} → {m n a : 𝕋} →
   Γ ⊢ m ∷ a →
   (x ♯ i) ∉ Γ →
   m [ n / x ♯ i ] ≡ m
@@ -133,7 +151,7 @@ sub-noop₁ (app m-deriv n-deriv x) x∉Γ =
     (sub-noop₁ n-deriv x∉Γ)
 sub-noop₁ (conv deriv _ _) x∉Γ = sub-noop₁ deriv x∉Γ
 
-sub-lemma : {x i : ℕ} → {Γ : Context} → {m n a b : Term} →
+sub-lemma : {x i : ℕ} → {Γ : Context} → {m n a b : 𝕋} →
   (Γ , x ♯ i ∷ a) ⊢ m ∷ b →
   Γ ⊢ n ∷ a →
   Γ ⊢ m [ n / x ♯ i ] ∷ (b [ n / x ♯ i ])
@@ -154,14 +172,14 @@ sub-lemma (conv m-deriv m-deriv₁ x) n-deriv = {!   !}
 -------------------------------------------------------------------------------
 -- Generation Lemma (Sorts)
 
-s-gen₁ : {i : ℕ} → {Γ : Context} → {a : Term} →
+s-gen₁ : {i : ℕ} → {Γ : Context} → {a : 𝕋} →
   Γ ⊢ s i ∷ a →
   a ↠ᵇ s (suc i)
 s-gen₁ {i} (axiom x) = β-refl {i}
 s-gen₁ (weaken _ deriv _) = s-gen₁ deriv
 s-gen₁ (conv deriv deriv₁ b↠ᵇa) = ↠ᵇ-trans b↠ᵇa (s-gen₁ deriv)
 
-sort-nf : {i : ℕ} → {a : Term} →
+sort-nf : {i : ℕ} → {a : 𝕋} →
   s i ↠ᵇ a →
   s i ≡ a
 sort-nf β-refl = refl
@@ -174,35 +192,37 @@ s-gen₂ deriv = sᵢ≡sⱼ→i≡j (sort-nf (s-gen₁ deriv))
 -------------------------------------------------------------------------------
 -- Generation Lemma (Π-Types)
 
-Π-gen₁ : {i j x : ℕ} → {Γ : Context} → {a b : Term} →
+Π-gen₁ : {i j x : ℕ} → {Γ : Context} → {a b : 𝕋} →
   Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j →
   (x ♯ i) ∉ Γ →
-  (Γ , x ♯ i ∷ a) ⊢ b [ x ♯ i / 0 ♯ i ]′ ∷ s j
+  (Γ , x ♯ i ∷ a) ⊢ b [ f⟨ x ♯ i ⟩ /0♯ i ] ∷ s j
 Π-gen₁ = {!   !}
 
-Π-gen₂ : {i j : ℕ} → {Γ : Context} → {a b n : Term} →
+Π-gen₂ : {i j : ℕ} → {Γ : Context} → {a b n : 𝕋} →
   Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j →
   Γ ⊢ n ∷ a →
-  Γ ⊢ b [ n / 0 ♯ i ]′ ∷ s j
+  Γ ⊢ b [ n /0♯ i ] ∷ s j
 Π-gen₂ = {!   !}
 
 -------------------------------------------------------------------------------
 -- Start Lemma
 
 start : {i : ℕ} → {Γ : Context} →
-  i < top-sort →
+  i < t →
   WFC Γ →
   Γ ⊢ s i ∷ s (suc i)
 start i<t ∅-wf = axiom i<t
 start {i} i<t (ext-wf fresh a-deriv Γ-wf) =
   weaken fresh (start i<t Γ-wf) a-deriv
 
+
+
 -------------------------------------------------------------------------------
 -- sₜ is the largest sort
 
-≤sₜ : {i : ℕ} → {Γ : Context} → {a : Term} →
+≤sₜ : {i : ℕ} → {Γ : Context} → {a : 𝕋} →
   Γ ⊢ a ∷ s i →
-  i ≤ top-sort
+  i ≤ t
 ≤sₜ (axiom prf) = prf
 ≤sₜ (var-intro {i = j} _ deriv) =
   1+n≤m⇒n≤m
@@ -218,12 +238,13 @@ start {i} i<t (ext-wf fresh a-deriv Γ-wf) =
       (s-gen₂ deriv)
       (≤sₜ deriv))
 
+
 -------------------------------------------------------------------------------
 -- Type Correctness
 
-type-correctness : {Γ : Context} → {m a : Term} →
+type-correctness : {Γ : Context} → {m a : 𝕋} →
   Γ ⊢ m ∷ a →
-  a ≢ s top-sort →
+  a ≢ s t →
   Σ[ i ∈ ℕ ] Γ ⊢ a ∷ s i
 type-correctness (axiom {i} i<t) prf = (suc (suc i) , axiom (≤∧≢⇒< i<t (sᵢ≢sⱼ⇒i≢j prf)))
 type-correctness (var-intro {i = i} fresh deriv) _ = (i , weaken {i = i} fresh deriv deriv)
@@ -241,10 +262,11 @@ type-correctness {Γ = Γ} (app {c = c} m-deriv n-deriv c≡sub) c≢sₜ =
     (j , subst (λ { n → Γ ⊢ n ∷ s j }) (sym c≡sub) (Π-gen₂ Π-deriv n-deriv))
 type-correctness (conv {i = i} _ a-deriv _) _ = (i , a-deriv)
 
+
 -------------------------------------------------------------------------------
 -- Top Sort Lemma
 
-sₜ-not-typable : {Γ : Context} → {m a : Term} →
+sₜ-not-typable : {Γ : Context} → {m a : 𝕋} →
   Γ ⊢ m ∷ a →
   m ≢ sₜ
 sₜ-not-typable (axiom prf) = i≢j⇒sᵢ≢sⱼ (m<n⇒m≢n prf)
@@ -255,18 +277,18 @@ sₜ-not-typable (abstr _ _) ()
 sₜ-not-typable (app _ _ _) ()
 sₜ-not-typable (conv deriv _ _) = sₜ-not-typable deriv
 
-Γ⊬sₜ∷a : {Γ : Context} → {a : Term} →
+Γ⊬sₜ∷a : {Γ : Context} → {a : 𝕋} →
   Γ ⊬ sₜ ∷ a
 Γ⊬sₜ∷a deriv = sₜ-not-typable deriv refl
 
-no-var-sₜ : {x i : ℕ} → {Γ : Context} → {a : Term} →
-  Γ ⊢ x ♯ i ∷ a →
+no-var-sₜ : {x i : ℕ} → {Γ : Context} → {a : 𝕋} →
+  Γ ⊢ f⟨ x ♯ i ⟩ ∷ a →
   a ≢ sₜ
 no-var-sₜ (var-intro _ deriv) = sₜ-not-typable deriv
 no-var-sₜ (weaken _ deriv _) = no-var-sₜ deriv
 no-var-sₜ (conv _ deriv _) = sₜ-not-typable deriv
 
-no-λ-sₜ : {i : ℕ} → {Γ : Context} → {a m b : Term} →
+no-λ-sₜ : {i : ℕ} → {Γ : Context} → {a m b : 𝕋} →
   Γ ⊢ λˢ i ∷ a ⇒ m ∷ b →
   b ≢ sₜ
 no-λ-sₜ (weaken _ deriv _) = no-λ-sₜ deriv
@@ -274,18 +296,19 @@ no-λ-sₜ (abstr deriv deriv₁) ()
 no-λ-sₜ (conv _ deriv _) = sₜ-not-typable deriv
 
 sort-not-var : {i x j : ℕ} →
-  s i ≢ x ♯ j
+  s i ≢ f⟨ x ♯ j ⟩
 sort-not-var ()
 
-sort-sub : {i j : ℕ} → {Γ : Context} → {m n : Term} →
-  s i ≡ m [ n / 0 ♯ j ]′ →
+sort-sub : {i j : ℕ} → {Γ : Context} → {m n : 𝕋} →
+  s i ≡ m [ n /0♯ j ] →
   m ≡ s i ⊎ n ≡ s i
 sort-sub {m = s k} eq = inj₁ (sym eq)
-sort-sub {j = j} {m = x ♯ k} eq with (x ♯ k) ≟ (0 ♯ j)
-...                        | yes p = inj₂ (sym (trans eq ↓↑-id))
-...                        | no _  = inj₂ (⊥-elim (sort-not-var eq))
+sort-sub {m = b⟨ y ♯ j ⟩} eq = {!   !}
+sort-sub {j = j} {m = f⟨ x ♯ k ⟩} eq with (x ♯ k) ≟ (0 ♯ j)
+...                        | yes p = {!   !} --inj₂ (sym (trans eq ↓↑-id))
+...                        | no _  = {!   !} --inj₂ (⊥-elim (sort-not-var eq))
 
-no-app-sₜ : {i : ℕ} → {Γ : Context} → {m n a : Term} →
+no-app-sₜ : {i : ℕ} → {Γ : Context} → {m n a : 𝕋} →
   Γ ⊢ m § i § n ∷ a →
   a ≢ sₜ
 no-app-sₜ (weaken _ deriv _) = no-app-sₜ deriv
@@ -293,14 +316,12 @@ no-app-sₜ
   {i = i} {Γ = Γ} {n = n}
   (app {a = a} {b = b} m-deriv n-deriv c≡sub) c≡s =
     [ lem₃ , lem₄ ] lem₂ where
-      lem : sₜ ≡ b [ n / 0 ♯ i ]′
+      lem : sₜ ≡ b [ n /0♯ i ]
       lem = trans (sym c≡s) c≡sub
       lem₂ : b ≡ sₜ ⊎ n ≡ sₜ
       lem₂ = sort-sub {Γ = Γ} lem
       lem₂₁ : Σ[ j ∈ ℕ ] Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j
       lem₂₁ = type-correctness m-deriv λ { () }
-      lem₂₂ : Σ[ x ∈ ℕ ] (Σ[ j ∈ ℕ ] ((Γ , x ♯ i ∷ a) ⊢ b [ x ♯ i / 0 ♯ i ]′ ∷ s j))
-      lem₂₂ = {!   !}
       lem₃ : b ≢ sₜ
       lem₃ b≡sₜ = {!   !}
       lem₄ : n ≢ sₜ
@@ -308,13 +329,13 @@ no-app-sₜ
 no-app-sₜ (conv _ deriv _) = sₜ-not-typable deriv
 
 Γ⊬x∷sₜ : {x i : ℕ} → {Γ : Context} →
-  Γ ⊬ x ♯ i ∷ sₜ
+  Γ ⊬ f⟨ x ♯ i ⟩ ∷ sₜ
 Γ⊬x∷sₜ deriv = no-var-sₜ deriv refl
 
-Γ⊬λ∷sₜ : {i : ℕ} → {Γ : Context} → {a m : Term} →
+Γ⊬λ∷sₜ : {i : ℕ} → {Γ : Context} → {a m : 𝕋} →
   Γ ⊬ λˢ i ∷ a ⇒ m ∷ sₜ
 Γ⊬λ∷sₜ deriv = no-λ-sₜ deriv refl
 
-Γ⊬mn∷sₜ : {i : ℕ} → {Γ : Context} → {m n : Term} →
+Γ⊬mn∷sₜ : {i : ℕ} → {Γ : Context} → {m n : 𝕋} →
   Γ ⊬ m § i § n ∷ sₜ
 Γ⊬mn∷sₜ deriv = no-app-sₜ deriv refl

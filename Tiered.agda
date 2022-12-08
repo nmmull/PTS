@@ -55,14 +55,14 @@ lift-map f = go where
 ↓ = lift-map pred 0
 
 _[_/_] : 𝕋 → 𝕋 → 𝕍 → 𝕋
-s i [ n / y ♯ j ] = s i
-b⟨ x ♯ i ⟩ [ n / y ♯ j ] = b⟨ x ♯ i ⟩
+s i [ n / y ] = s i
+b⟨ x ♯ i ⟩ [ n / y ] = b⟨ x ♯ i ⟩
 f⟨ x ♯ i ⟩ [ n / y ♯ j ] with (x ♯ i) ≟ (y ♯ j) 
 ...                      | yes _  = n
 ...                      | _ = f⟨ x ♯ i ⟩
 (λˢ i ∷ a ⇒ m) [ n / y ♯ j ] = λˢ i ∷ (a [ n / y ♯ j ]) ⇒ (m [ ↑ n / (suc y) ♯ j ])
 (Πˢ i ∷ a ⇒ b) [ n / y ♯ j ] = Πˢ i ∷ (a [ n / y ♯ j ]) ⇒ (b [ ↑ n / (suc y) ♯ j ])
-(m₁ § i § m₂) [ n / y ♯ j ] = (m₁ [ n / y ♯ j ]) § i § (m₂ [ n / y ♯ j ])
+(m₁ § i § m₂) [ n / y ] = (m₁ [ n / y ]) § i § (m₂ [ n / y ])
 
 _[_/_]ᵇ : 𝕋 → 𝕋 → 𝕍 → 𝕋 
 s j [ n / x ♯ i ]ᵇ = s j
@@ -206,3 +206,4 @@ data WFC : Context → Set where
   go (abstr _ deriv) = go deriv
   go (app deriv _ _) = go deriv
   go (conv deriv _ _) = go deriv
+ 
