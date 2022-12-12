@@ -9,6 +9,7 @@ open import Data.Nat using (ℕ; suc; pred; _<_; _≤?_)
 open import Data.Unit using (⊤)
 open import Data.Empty using (⊥)
 open import Data.String using (String)
+open import Data.Sum using (_⊎_)
 open import Relation.Nullary using (yes; no; ¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Relation.Binary.Definitions using (DecidableEquality)
@@ -116,102 +117,105 @@ data _↠ᵇ_ : 𝕋 → 𝕋 → Set where
 -------------------------------------------------------------------------------
 -- Typing Inference
 
-data Context : Set where
-  ∅ : Context
-  _,_∷_ : Context → 𝕍 → 𝕋 → Context
+data ℂ : Set where
+  ∅ : ℂ
+  _,_∷_ : ℂ → 𝕍 → 𝕋 → ℂ
 
-data _∉_ : 𝕍 → Context → Set where
+data _∉_ : 𝕍 → ℂ → Set where
   ∉∅ : {x : 𝕍} → x ∉ ∅
-  ∉Γ : {x y : 𝕍} → {Γ : Context} → {a : 𝕋} →
+  ∉Γ : {x y : 𝕍} → {Γ : ℂ} → {a : 𝕋} →
     x ∉ Γ →
     x ≡ y →
     x ∉ (Γ , y ∷ a)
 
-_[_/_]ᶜ : Context → 𝕋 → 𝕍 → Context
+_[_/_]ᶜ : ℂ → 𝕋 → 𝕍 → ℂ
 ∅ [ _ / _ ]ᶜ = ∅
 (Γ , x ∷ a) [ n / y ]ᶜ = (Γ [ n / y ]ᶜ) , x ∷ (a [ n / y ])
 
-_∘_ : Context → Context → Context
+_∘_ : ℂ → ℂ → ℂ
 Γ ∘ ∅ = Γ
 Γ ∘ (Δ , x ∷ a) = (Γ ∘ Δ) , x ∷ a
 
-postulate t : ℕ -- for top sort
-sₜ : 𝕋
-sₜ = s t
+record Spec : Set₁ where
+  field
+    t : ℕ
+    rule : ℕ → ℕ → Set
 
-postulate rule : ℕ → ℕ → Set
+data _∥_⊢_∷_ : Spec → ℂ → 𝕋 → 𝕋 → Set₁ where
 
-data _⊢_∷_ : Context → 𝕋 → 𝕋 → Set where
-
-  axiom : {i : ℕ} →
-    i < t →
+  axiom : {𝕊 : Spec} {i : ℕ} →
+    i < Spec.t 𝕊 →
     -----------------------------------
-    ∅ ⊢ s i ∷ s (suc i)
+    𝕊 ∥ ∅ ⊢ s i ∷ s (suc i)
 
-  var-intro : {x i : ℕ} → {Γ : Context} → {a : 𝕋} →
+  var-intro : {𝕊 : Spec} → {x i : ℕ} → {Γ : ℂ} → {a : 𝕋} →
     (x ♯ i) ∉ Γ →
-    Γ ⊢ a ∷ s i →
+    𝕊 ∥ Γ ⊢ a ∷ s i →
     -----------------------------------
-    (Γ , x ♯ i ∷ a) ⊢ f⟨ x ♯ i ⟩ ∷ a
+    𝕊 ∥ (Γ , x ♯ i ∷ a) ⊢ f⟨ x ♯ i ⟩ ∷ a
 
-  weaken : {x i : ℕ} → {Γ : Context} → {m a b : 𝕋} →
+  sort-weaken : {𝕊 : Spec} → {x i j : ℕ} → {Γ : ℂ} → {b : 𝕋} →
     (x ♯ i) ∉ Γ →
-    Γ ⊢ m ∷ a →
-    Γ ⊢ b ∷ s i →
+    𝕊 ∥ Γ ⊢ s j ∷ s (suc j) →
+    𝕊 ∥ Γ ⊢ b ∷ s i →
     -----------------------------------
-    (Γ , x ♯ i ∷ b) ⊢ m ∷ a
+    𝕊 ∥ (Γ , x ♯ i ∷ b) ⊢ s j ∷ s (suc j)
 
-  pi-intro : {x i j : ℕ} → {Γ : Context} → {a b : 𝕋} →
-    rule i j →
-    Γ ⊢ a ∷ s i →
-    (Γ , x ♯ i ∷ a) ⊢ b [ f⟨ x ♯ i ⟩ /0♯ i ] ∷ s j →
+  var-weaken : {𝕊 : Spec} → {x i y j : ℕ} → {Γ : ℂ} → {a b : 𝕋} →
+    (y ♯ j) ∉ Γ →
+    𝕊 ∥ Γ ⊢ f⟨ x ♯ i ⟩ ∷ a →
+    𝕊 ∥ Γ ⊢ b ∷ s j →
     -----------------------------------
-    Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j
+    𝕊 ∥ (Γ , y ♯ j ∷ b) ⊢ f⟨ x ♯ i ⟩ ∷ a
 
-  abstr : {x i j : ℕ} → {Γ : Context} → {m a b : 𝕋} →
-    (Γ , x ♯ i ∷ a) ⊢ m [ f⟨ x ♯ i ⟩ /0♯ i ] ∷ (b [ f⟨ x ♯ i ⟩ /0♯ i ]) →
-    Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j →
+  pi-intro : {𝕊 : Spec} → {x i j : ℕ} → {Γ : ℂ} → {a b : 𝕋} →
+    Spec.rule 𝕊 i j →
+    𝕊 ∥ Γ ⊢ a ∷ s i →
+    𝕊 ∥ (Γ , x ♯ i ∷ a) ⊢ b [ f⟨ x ♯ i ⟩ /0♯ i ] ∷ s j →
     -----------------------------------
-    Γ ⊢ (λˢ i ∷ a ⇒ m) ∷ (Πˢ i ∷ a ⇒ b)
+    𝕊 ∥ Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j
 
-  app : {i : ℕ} → {Γ : Context} → {m n a b c : 𝕋} →
-    Γ ⊢ m ∷ (Πˢ i ∷ a ⇒ b) →
-    Γ ⊢ n ∷ a →
+  abstr : {𝕊 : Spec} → {x i j : ℕ} → {Γ : ℂ} → {m a b : 𝕋} →
+    𝕊 ∥ (Γ , x ♯ i ∷ a) ⊢ m [ f⟨ x ♯ i ⟩ /0♯ i ] ∷ (b [ f⟨ x ♯ i ⟩ /0♯ i ]) →
+    𝕊 ∥ Γ ⊢ Πˢ i ∷ a ⇒ b ∷ s j →
+    -----------------------------------
+    𝕊 ∥ Γ ⊢ (λˢ i ∷ a ⇒ m) ∷ (Πˢ i ∷ a ⇒ b)
+
+  app : {𝕊 : Spec} → {i : ℕ} → {Γ : ℂ} → {m n a b c : 𝕋} →
+    𝕊 ∥ Γ ⊢ m ∷ (Πˢ i ∷ a ⇒ b) →
+    𝕊 ∥ Γ ⊢ n ∷ a →
     c ≡ b [ n /0♯ i ] →
     -----------------------------------
-    Γ ⊢ (m § i § n) ∷ c
+    𝕊 ∥ Γ ⊢ (m § i § n) ∷ c
 
-  conv : {i : ℕ} → {Γ : Context} → {m a b : 𝕋} →
-    Γ ⊢ m ∷ a →
-    Γ ⊢ b ∷ s i →
+  conv-red : {𝕊 : Spec} → {i : ℕ} → {Γ : ℂ} → {m a b : 𝕋} →
+    𝕊 ∥ Γ ⊢ m ∷ a →
+    𝕊 ∥ Γ ⊢ b ∷ s i →
+    a ↠ᵇ b →
+    -----------------------------------
+    𝕊 ∥ Γ ⊢ m ∷ b
+  
+  conv-exp : {𝕊 : Spec} → {i : ℕ} → {Γ : ℂ} → {m a b : 𝕋} →
+    𝕊 ∥ Γ ⊢ m ∷ a →
+    𝕊 ∥ Γ ⊢ b ∷ s i →
     b ↠ᵇ a →
     -----------------------------------
-    Γ ⊢ m ∷ b
+    𝕊 ∥ Γ ⊢ m ∷ b
 
-_⊬_∷_ : Context → 𝕋 → 𝕋 → Set
-Γ ⊬ m ∷ a = ¬ (Γ ⊢ m ∷ a)
+
+_∥_⊬_∷_ : (𝕊 : Spec) → ℂ → 𝕋 → 𝕋 → Set₁
+𝕊 ∥ Γ ⊬ m ∷ a = ¬ (𝕊 ∥ Γ ⊢ m ∷ a)
 
 -------------------------------------------------------------------------------
--- Well-formed Contexts
+-- Well-formed Context
 
-data WFC : Context → Set where
-  ∅-wf : WFC ∅
-  ext-wf : {x i : ℕ} → {Γ : Context} → {a : 𝕋} →
+data WFC : (𝕊 : Spec) → ℂ → Set₁ where
+  ∅-wf : {𝕊 : Spec} → WFC 𝕊 ∅
+  ext-wf : {𝕊 : Spec} → {x i : ℕ} → {Γ : ℂ} → {a : 𝕋} →
     (x ♯ i) ∉ Γ →
-    Γ ⊢ a ∷ s i →
-    WFC Γ →
-    WFC (Γ , x ♯ i ∷ a)
+    𝕊 ∥ Γ ⊢ a ∷ s i →
+    WFC 𝕊 Γ →
+    WFC 𝕊 (Γ , x ♯ i ∷ a)
 
-Γ-wf : {Γ : Context} → {m a : 𝕋} →
-  Γ ⊢ m ∷ a →
-  WFC Γ
-Γ-wf = go where
-  go : {Γ : Context} → {m a : 𝕋} → Γ ⊢ m ∷ a → WFC Γ
-  go (axiom x) = ∅-wf
-  go (var-intro fresh deriv) = ext-wf fresh deriv (go (deriv))
-  go (weaken fresh _ deriv) = ext-wf fresh deriv (go (deriv))
-  go (pi-intro _ deriv _) = go deriv
-  go (abstr _ deriv) = go deriv
-  go (app deriv _ _) = go deriv
-  go (conv deriv _ _) = go deriv
+
  
