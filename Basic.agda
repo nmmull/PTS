@@ -3,9 +3,6 @@
 --
 -------------------------------------------------------------------------------
 
-module Basic where
-
-open import Tiered
 open import Data.Nat using (ℕ; suc; pred; _≤?_; _<_; _≤_)
 open import Data.Nat.Properties using (≤∧≢⇒<)
 open import Utils.Nat using (m≤n⇒m≤1+n; m<n⇒m≢n; 1+n≤m⇒n≤m; m≡n∧m≤p⇒n≤p)
@@ -14,13 +11,22 @@ open import Data.Empty using (⊥; ⊥-elim)
 open import Relation.Binary.Definitions using (DecidableEquality)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 import Relation.Binary.PropositionalEquality as Eq
-open Eq using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans)
+open Eq using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans; ≢-sym)
 open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; _∎; step-≡)
 open import Data.Product using (_×_; Σ; Σ-syntax; proj₁; proj₂; _,_)
+open import Data.Fin using (Fin)
+open import Data.String
+
+module Basic (n : ℕ) (Rules : Fin (suc n) → Fin (suc n) → Set) where
+
+import Tiered
+module NTiered = Tiered n Rules
+open NTiered
 
 -------------------------------------------------------------------------------
 -- Helpers
 
+{-
 i≢j⇒sᵢ≢sⱼ : {i j : ℕ} → i ≢ j → s i ≢ s j
 i≢j⇒sᵢ≢sⱼ neq refl = neq refl
 
@@ -126,15 +132,53 @@ inversion : {x i y j : ℕ} {Γ Δ : ℂ} {a b m c : 𝕋} →
   𝕊 ∥ (((Γ , x ♯ i ∷ b) , y ♯ j ∷ a) ∘ Δ) ⊢ m ∷ c →
   𝕊 ∥ (((Γ , y ♯ j ∷ a) , x ♯ i ∷ a) ∘ Δ) ⊢ m ∷ c
 inversion = {!   !}
+-}
 
 -------------------------------------------------------------------------------
 -- Weakening
 
-weaken : {x j : ℕ} {Γ : ℂ} {m a b : 𝕋} →
+thinning : ∀ {Δ b Γ x a j m} →
+  x ∉ (Γ ∘ Δ) →
+  Γ ⊢ b ∷ s j →
+  (Γ ∘ Δ) ⊢ m ∷ a →
+  ((Γ , x ∷ b) ∘ Δ) ⊢ m ∷ a
+thinning {Tiered.∅} fresh b-deriv (axiom not-top) = {!!}
+thinning {Tiered.∅} fresh b-deriv (var-intro x m-deriv) = {!!}
+thinning {Tiered.∅} fresh b-deriv (sort-weaken x m-deriv m-deriv₁) = {!!}
+thinning {Tiered.∅} fresh b-deriv (var-weaken x m-deriv m-deriv₁) = {!!}
+thinning {Tiered.∅} fresh b-deriv (pi-intro {a} rl src-deriv tgt-deriv) =
+  pi-intro rl
+    (thinning fresh b-deriv src-deriv)
+    (λ {y}  → λ { (∉Γ x1 x2) → thinning {∅ , y ∷ a} (∉Γ fresh (≢-sym x2)) b-deriv (tgt-deriv {y} x1) }) 
+thinning {Tiered.∅} fresh b-deriv (abstr x m-deriv) = {!!}
+thinning {Tiered.∅} fresh b-deriv (app m-deriv m-deriv₁ x) = {!!}
+thinning {Tiered.∅} fresh b-deriv (conv-red m-deriv m-deriv₁ x) = {!!}
+thinning {Tiered.∅} fresh b-deriv (conv-exp m-deriv m-deriv₁ x) = {!!}
+thinning {Δ , x ∷ x₁} fresh b-deriv m-deriv = {!!}
+{-
+weaken : ∀ {x : String} {j : Sort} {Γ : ℂ} {m a b : 𝕋} →
   (x ♯ j) ∉ Γ →
-  𝕊 ∥ Γ ⊢ m ∷ a →
-  𝕊 ∥ Γ ⊢ b ∷ s j →
-  𝕊 ∥ (Γ , x ♯ j ∷ b) ⊢ m ∷ a
+  Γ ⊢ m ∷ a →
+  Γ ⊢ b ∷ s j →
+  (Γ , x ♯ j ∷ b) ⊢ m ∷ a
+weaken fresh (axiom not-top) b-deriv =
+  sort-weaken fresh (axiom not-top) b-deriv
+weaken fresh (var-intro fr m-deriv) b-deriv =
+  var-weaken fresh (var-intro fr m-deriv) b-deriv
+weaken fresh (sort-weaken fr m-deriv c-deriv) b-deriv =
+  sort-weaken fresh (sort-weaken fr m-deriv c-deriv) b-deriv
+weaken fresh (var-weaken fr m-deriv c-deriv) b-deriv =
+  var-weaken fresh (var-weaken fr m-deriv c-deriv) b-deriv
+weaken fresh (pi-intro r a-deriv c-deriv) b-deriv =
+  pi-intro r (weaken fresh a-deriv b-deriv) {!!}
+weaken fresh (abstr m-deriv pi-deriv) b-deriv =
+  abstr  {!!} (weaken fresh pi-deriv b-deriv)
+weaken fresh (app m-deriv n-deriv ty-eq) b-deriv =
+  app (weaken fresh m-deriv b-deriv) (weaken fresh n-deriv b-deriv) ty-eq
+weaken fresh (Tiered.conv-red m-deriv m-deriv₁ x) b-deriv = {!!}
+weaken fresh (Tiered.conv-exp m-deriv m-deriv₁ x) b-deriv = {!!}
+-}
+{-
 weaken fresh (axiom i<t) b-deriv =
   sort-weaken fresh (axiom i<t) b-deriv
 weaken fresh (var-intro fr m-deriv) b-deriv =
@@ -160,7 +204,6 @@ weaken fresh (conv-exp m-deriv a-deriv eq) b-deriv =
     (weaken fresh m-deriv b-deriv)
     (weaken fresh a-deriv b-deriv)
     eq
-
 -------------------------------------------------------------------------------
 -- Contexts in Judgments are Well-formed
 
@@ -344,3 +387,4 @@ no-app-sₜ (conv-exp _ deriv _) = sₜ-not-typable deriv
 Γ⊬mn∷sₜ : {i : ℕ} → {Γ : ℂ} → {m n : 𝕋} →
   𝕊 ∥ Γ ⊬ m § i § n ∷ s (Spec.t 𝕊)
 Γ⊬mn∷sₜ deriv = no-app-sₜ deriv refl
+-}
