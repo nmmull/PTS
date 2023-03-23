@@ -13,23 +13,14 @@ open import Relation.Nullary using (yes; no; ¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl)
 open import Relation.Binary.Definitions using (DecidableEquality)
 
-module Tiered (n : ℕ) (Rule : Fin (suc n) → Fin (suc n) → Set) where -- DEFINE IN SEPARATE FILE AS A SPECIFICATION
+module Tiered (n : ℕ) (Rule : ℕ → ℕ → Set) where
 
 -------------------------------------------------------------------------------
 -- Grammar (with DeBruijn Indices and explicit sort annotations)
 
-topindex : ℕ
-topindex = (suc n)
-
-Sort : Set
-Sort = Fin topindex
-
-topsort : Sort
-topsort = fromℕ n
-
 data 𝕋 : Set where
-  s : Sort → 𝕋
-  f⟨_♯_⟩ : String → Sort → 𝕋
+  s : ℕ → 𝕋
+  f⟨_♯_⟩ : String → ℕ → 𝕋
   b⟨_⟩ : ℕ → 𝕋
   ƛ_·_ : 𝕋 → 𝕋 → 𝕋
   Π_·_ : 𝕋 → 𝕋 → 𝕋
@@ -121,10 +112,9 @@ _∘_ : ℂ → ℂ → ℂ
 Γ ∘ (Δ , x ∷ a) = (Γ ∘ Δ) , x ∷ a
 
 data _⊢_∷_ : ℂ → 𝕋 → 𝕋 → Set₁ where
-  axiom : ∀ {i} →
-    (not-top : (suc n) ≢ toℕ (Data.Fin.suc i)) →
+  axiom : ∀ {i} → i < n →
     -----------------------------------
-    ∅ ⊢ s i ∷ s (lower₁ (Data.Fin.suc i) not-top)
+    ∅ ⊢ s i ∷ s (suc i)
 
   var-intro : ∀ {x i Γ a} →
     x ∉ Γ →
@@ -132,12 +122,12 @@ data _⊢_∷_ : ℂ → 𝕋 → 𝕋 → Set₁ where
     -----------------------------------
     (Γ , x ∷ a) ⊢ f⟨ x ♯ i ⟩ ∷ a
 
-  sort-weaken : ∀ {x i j Γ a b} →
+  sort-weaken : ∀ {x i j Γ b} →
     x ∉ Γ →
     Γ ⊢ b ∷ s i →
-    Γ ⊢ s j ∷ a →
+    Γ ⊢ s j ∷ s (suc j) →
     -----------------------------------
-    (Γ , x ∷ b) ⊢ s j ∷ a
+    (Γ , x ∷ b) ⊢ s j ∷ s (suc j)
 
   var-weaken : ∀ {x y i j Γ a b} →
     y ∉ Γ →
@@ -153,9 +143,9 @@ data _⊢_∷_ : ℂ → 𝕋 → 𝕋 → Set₁ where
     -----------------------------------
     Γ ⊢ Π a · b ∷ s j
 
-  abstr : ∀ {i j Γ m a b} →
-    (∀ {x} → x ∉ Γ → (Γ , x ∷ a) ⊢ (m [ f⟨ x ♯ i ⟩ ]⁰) ∷ (b [ f⟨ x ♯ i ⟩ ]⁰)) →
+  abstr : ∀ {a i j Γ m b} →
     Γ ⊢ Π a · b ∷ s j →
+    (∀ {x} → x ∉ Γ → (Γ , x ∷ a) ⊢ (m [ f⟨ x ♯ i ⟩ ]⁰) ∷ (b [ f⟨ x ♯ i ⟩ ]⁰)) →
     -----------------------------------
     Γ ⊢ (ƛ a · m) ∷ (Π a · b)
 
