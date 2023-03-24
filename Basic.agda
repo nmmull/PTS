@@ -1,3 +1,4 @@
+
 -------------------------------------------------------------------------------
 -- Basic Meta-Theoretic Lemmas
 --
@@ -21,12 +22,13 @@ open import Specification
 
 module Basic (𝕊 : Spec) where
 
-open import Data.Product using (_×_; Σ; Σ-syntax; proj₁; proj₂; _,_; ∃; ∃-syntax; map₂)
+open import Data.Nat using (ℕ; suc)
+open import Data.Product using (_×_; proj₁; proj₂; _,_; ∃; ∃-syntax; map₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans; ≢-sym)
 open import Data.Empty using (⊥; ⊥-elim)
-open import Data.String using (String)
+
 open import PTS 𝕊
 
 -------------------------------------------------------------------------------
@@ -57,6 +59,27 @@ open import PTS 𝕊
   x ≢ y
 ∉-to-≢ {∅} (∉Γ _ x≢y) = x≢y
 ∉-to-≢ {Δ , z ∷ b} (∉Γ x∉Γ,y,Δ _) = ∉-to-≢ x∉Γ,y,Δ
+
+data _∉ᵗ_ : ℕ → 𝕋 → Set where
+  ∉-s : ∀ {x i} → x ∉ᵗ s i
+  ∉-v : ∀ {x y i} → x ≢ y → x ∉ᵗ ⟨ y ♯ i ⟩
+  ∉-λ : ∀ {x a m} → x ∉ᵗ a → (suc x) ∉ᵗ m → x ∉ᵗ ƛ a · m
+  ∉-Π : ∀ {x a b} → x ∉ᵗ a → (suc x) ∉ᵗ b → x ∉ᵗ Π a · b
+  ∉-§ : ∀ {x m n} → x ∉ᵗ m → x ∉ᵗ n → x ∉ᵗ m § n
+
+∉-to-∉ᵗ : ∀ {Γ m a x} →
+  Γ ⊢ m ∷ a →
+  x ∉ Γ →
+  x ∉ᵗ m
+∉-to-∉ᵗ (axiom _) _ = ∉-s
+∉-to-∉ᵗ (var-intro _ _) x∉Γy = ∉-v (∉-to-≢ {Δ = ∅} x∉Γy)
+∉-to-∉ᵗ (sort-weaken _ _ _ _) _ = ∉-s
+∉-to-∉ᵗ (var-weaken y∉Γ Γ⊢z _) x∉Γy = ∉-v {!!}
+∉-to-∉ᵗ (pi-intro rl Γ⊢a Γy⊢b) x∉Γ = ∉-Π (∉-to-∉ᵗ Γ⊢a x∉Γ) {!!}
+∉-to-∉ᵗ (abstr Γ⊢m x) x∉Γ = {!!}
+∉-to-∉ᵗ (app Γ⊢m Γ⊢n _) x∉Γ = ∉-§ (∉-to-∉ᵗ Γ⊢m x∉Γ) (∉-to-∉ᵗ Γ⊢n x∉Γ)
+∉-to-∉ᵗ (conv-red Γ⊢m _ _) = ∉-to-∉ᵗ Γ⊢m
+∉-to-∉ᵗ (conv-exp Γ⊢m _ _) = ∉-to-∉ᵗ Γ⊢m
 
 -------------------------------------------------------------------------------
 -- Thinning
@@ -132,13 +155,18 @@ weaken : ∀ {Γ x a b m j} →
   Γ , x ∷ b ⊢ m ∷ a
 weaken = thinning
 
+
 -------------------------------------------------------------------------------
 -- Substitution
 
+sub-comm₁ : ∀ {m n x i} →
+  m [ n ]⁰ ≡ m [ ⟨ x ♯ i ⟩ ]⁰ [ n / x ]
+sub-comm₁ = {!!}
+
 substitution : ∀ {Δ Γ x a m n b} →
   Γ ⊢ n ∷ a →
-  ((Γ , x ∷ a) ∘ Δ) ⊢ m ∷ b →
-  (Γ ∘ (Δ [ n / x ]ᶜ))  ⊢ m [ n / x ] ∷ (b [ n / x ])
+  (Γ , x ∷ a) ∘ Δ ⊢ m ∷ b →
+  Γ ∘ (Δ [ n / x ]ᶜ)  ⊢ m [ n / x ] ∷ b [ n / x ]
 substitution = {!!}
 {-
 substitution {Δ = ∅} {x = x} {n = n} Γ⊢n (var-intro {a = a} x∉Γ Γ⊢a)
@@ -163,6 +191,7 @@ substitution {∅} Γ⊢n (conv-red md md₁ x) = {!!}
 substitution {∅} Γ⊢n (conv-exp md md₁ x) = {!!}
 substitution {Δ , z ∷ d} Γ⊢n md = {!!}
 -}
+
 -------------------------------------------------------------------------------
 -- Generation Lemma (Π-Types)
 
@@ -190,23 +219,30 @@ substitution {Δ , z ∷ d} Γ⊢n md = {!!}
 Π-gen₄ : ∀ {Γ a b c x} →
   Γ ⊢ Π a · b ∷ c →
   x ∉ Γ →
-  ∃[ i ] ∃[ j ] Γ , x ∷ a ⊢ b [ f⟨ x ♯ i ⟩ ]⁰ ∷ s j
+  ∃[ i ] ∃[ j ] Γ , x ∷ a ⊢ b [ ⟨ x ♯ i ⟩ ]⁰ ∷ s j
 Π-gen₄ (pi-intro {i = i} {j = j} _ _ Γx⊢b) x∉Γ = (i , (j , Γx⊢b x∉Γ))
 Π-gen₄ (conv-red Γ⊢Π _ _) = Π-gen₄ Γ⊢Π
 Π-gen₄ (conv-exp Γ⊢Π _ _) = Π-gen₄ Γ⊢Π
 
-Π-gen₅ : ∀ {Γ x a b c n i} →
+Π-gen₅ : ∀ {Γ x a b c n} →
   Γ ⊢ Π a · b ∷ c →
   Γ ⊢ n ∷ a →
   x ∉ Γ →
-  ∃[ i ] b [ f⟨ x ♯ i ⟩ ]⁰ [ n / x ] ≡ b [ n ]⁰
-Π-gen₅ {b = b} Γ⊢Π Γ⊢n x∉Γ = {!!}
+  ∃[ j ] Γ ⊢ b [ n ]⁰ ∷ s j
+Π-gen₅ {b = s i} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
+Π-gen₅ {b = ⟨ x₂ ♯ x₃ ⟩} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
+Π-gen₅ {b = ƛ b · b₁} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
+Π-gen₅ {b = Π b · b₁} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
+Π-gen₅ {b = b § b₁} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
+Π-gen₅ {b = b} (conv-red Γ⊢Π Γ⊢Π₁ x) Γ⊢n x∉Γ = {!!}
+Π-gen₅ {b = b} (conv-exp Γ⊢Π Γ⊢Π₁ x) Γ⊢n x∉Γ = {!!}
+
 -------------------------------------------------------------------------------
 -- Type Correctness
 
 type-correctness : ∀ {Γ m a} →
   Γ ⊢ m ∷ a →
-  (Σ[ i ∈ Spec.Sort 𝕊 ] Γ ⊢ a ∷ s i) ⊎ (Σ[ i ∈ Spec.Sort 𝕊 ] a ≡ s i)
+  (∃[ i ] Γ ⊢ a ∷ s i) ⊎ (∃[ i ] a ≡ s i)
 type-correctness (axiom {j = j} _) = inj₂ (j , refl)
 type-correctness (var-intro {i = i} x∉Γ Γ⊢a) = inj₁ (i , weaken x∉Γ Γ⊢a Γ⊢a )
 type-correctness (sort-weaken {k = k} ax x∉Γ Γ⊢b Γ⊢s) = inj₂ (k , refl)
@@ -220,8 +256,9 @@ type-correctness (app Γ⊢m Γ⊢n c≡bn) =
   ] (type-correctness Γ⊢m)
 type-correctness (conv-red {i = i} _ Γ⊢a _) = inj₁ (i , Γ⊢a)
 type-correctness (conv-exp {i = i} _ Γ⊢a _) = inj₁ (i , Γ⊢a)
-{-
 
+{-
+{-
 -------------------------------------------------------------------------------
 -- Helpers
 
@@ -645,6 +682,8 @@ no-app-sₜ (conv-exp _ deriv _) = sₜ-not-typable deriv
 Γ⊬mn∷sₜ : {i : ℕ} → {Γ : ℂ} → {m n : 𝕋} →
   𝕊 ∥ Γ ⊬ m § i § n ∷ s (Spec.t 𝕊)
 Γ⊬mn∷sₜ deriv = no-app-sₜ deriv refl
+-}
+
 -}
 
 -}
