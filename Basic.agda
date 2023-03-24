@@ -60,9 +60,10 @@ open import PTS 𝕊
 ∉-to-≢ {∅} (∉Γ _ x≢y) = x≢y
 ∉-to-≢ {Δ , z ∷ b} (∉Γ x∉Γ,y,Δ _) = ∉-to-≢ x∉Γ,y,Δ
 
+{-
 data _∉ᵗ_ : ℕ → 𝕋 → Set where
   ∉-s : ∀ {x i} → x ∉ᵗ s i
-  ∉-v : ∀ {x y i} → x ≢ y → x ∉ᵗ ⟨ y ♯ i ⟩
+  ∉-v : ∀ {x y i} → x ≢ y → x ∉ᵗ f⟨ y ♯ i ⟩
   ∉-λ : ∀ {x a m} → x ∉ᵗ a → (suc x) ∉ᵗ m → x ∉ᵗ ƛ a · m
   ∉-Π : ∀ {x a b} → x ∉ᵗ a → (suc x) ∉ᵗ b → x ∉ᵗ Π a · b
   ∉-§ : ∀ {x m n} → x ∉ᵗ m → x ∉ᵗ n → x ∉ᵗ m § n
@@ -80,6 +81,25 @@ data _∉ᵗ_ : ℕ → 𝕋 → Set where
 ∉-to-∉ᵗ (app Γ⊢m Γ⊢n _) x∉Γ = ∉-§ (∉-to-∉ᵗ Γ⊢m x∉Γ) (∉-to-∉ᵗ Γ⊢n x∉Γ)
 ∉-to-∉ᵗ (conv-red Γ⊢m _ _) = ∉-to-∉ᵗ Γ⊢m
 ∉-to-∉ᵗ (conv-exp Γ⊢m _ _) = ∉-to-∉ᵗ Γ⊢m
+-}
+
+-------------------------------------------------------------------------------
+-- Contexts in Judgments are Well-formed
+
+Γ-wf : ∀ {Γ m a} →
+  Γ ⊢ m ∷ a →
+  WFC Γ
+Γ-wf = ?
+
+-------------------------------------------------------------------------------
+-- Start Lemma
+
+start : ∀ {Γ i j} →
+  Spec.axiom 𝕊 i j →
+  WFC Γ →
+  Γ ⊢ s i ∷ s j
+start i<t ∅-wf = axiom i<t
+start i<t (ext-wf fresh a-deriv Γ-wf) = ?
 
 -------------------------------------------------------------------------------
 -- Thinning
@@ -155,13 +175,8 @@ weaken : ∀ {Γ x a b m j} →
   Γ , x ∷ b ⊢ m ∷ a
 weaken = thinning
 
-
 -------------------------------------------------------------------------------
 -- Substitution
-
-sub-comm₁ : ∀ {m n x i} →
-  m [ n ]⁰ ≡ m [ ⟨ x ♯ i ⟩ ]⁰ [ n / x ]
-sub-comm₁ = {!!}
 
 substitution : ∀ {Δ Γ x a m n b} →
   Γ ⊢ n ∷ a →
@@ -219,23 +234,23 @@ substitution {Δ , z ∷ d} Γ⊢n md = {!!}
 Π-gen₄ : ∀ {Γ a b c x} →
   Γ ⊢ Π a · b ∷ c →
   x ∉ Γ →
-  ∃[ i ] ∃[ j ] Γ , x ∷ a ⊢ b [ ⟨ x ♯ i ⟩ ]⁰ ∷ s j
+  ∃[ i ] ∃[ j ] Γ , x ∷ a ⊢ b [ f⟨ x ♯ i ⟩ ]⁰ ∷ s j
 Π-gen₄ (pi-intro {i = i} {j = j} _ _ Γx⊢b) x∉Γ = (i , (j , Γx⊢b x∉Γ))
 Π-gen₄ (conv-red Γ⊢Π _ _) = Π-gen₄ Γ⊢Π
 Π-gen₄ (conv-exp Γ⊢Π _ _) = Π-gen₄ Γ⊢Π
 
-Π-gen₅ : ∀ {Γ x a b c n} →
+Π-gen₅ : ∀ {Γ a b c n} →
   Γ ⊢ Π a · b ∷ c →
   Γ ⊢ n ∷ a →
-  x ∉ Γ →
   ∃[ j ] Γ ⊢ b [ n ]⁰ ∷ s j
-Π-gen₅ {b = s i} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
-Π-gen₅ {b = ⟨ x₂ ♯ x₃ ⟩} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
-Π-gen₅ {b = ƛ b · b₁} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
-Π-gen₅ {b = Π b · b₁} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
-Π-gen₅ {b = b § b₁} (pi-intro {j = j} x Γ⊢Π x₁) Γ⊢n x∉Γ = (j , {!!})
-Π-gen₅ {b = b} (conv-red Γ⊢Π Γ⊢Π₁ x) Γ⊢n x∉Γ = {!!}
-Π-gen₅ {b = b} (conv-exp Γ⊢Π Γ⊢Π₁ x) Γ⊢n x∉Γ = {!!}
+Π-gen₅ {b = s i} (pi-intro {j = j} _ _ Γx⊢b) Γ⊢n = (j , {!!})
+Π-gen₅ {b = f⟨ y ♯ l ⟩} (pi-intro {j = j} rl Γ⊢a Γx⊢b) Γ⊢n = (j , {!!})
+Π-gen₅ {b = b⟨ x ⟩} (pi-intro rl Γ⊢a Γx⊢b) Γ⊢n = {!!}
+Π-gen₅ {b = ƛ b · b₁} (pi-intro rl Γ⊢a Γx⊢b) Γ⊢n = {!!}
+Π-gen₅ {b = Π b · b₁} (pi-intro rl Γ⊢a Γx⊢b) Γ⊢n = {!!}
+Π-gen₅ {b = b § b₁} (pi-intro rl Γ⊢a Γx⊢b) Γ⊢n = {!!}
+Π-gen₅ (conv-red Γ⊢Π Γ⊢Π₁ x) Γ⊬ = {!!}
+Π-gen₅ (conv-exp Γ⊢Π Γ⊢Π₁ x) Γ⊬ = {!!}
 
 -------------------------------------------------------------------------------
 -- Type Correctness
@@ -250,292 +265,14 @@ type-correctness (var-weaken y∉Γ Γ⊢b Γ⊢x) =
   [ (λ prf → inj₁ ((proj₁ prf , weaken y∉Γ Γ⊢b (proj₂ prf)))) , inj₂ ] (type-correctness Γ⊢x)
 type-correctness (pi-intro {k = k} _ _ _) = inj₂ (k , refl)
 type-correctness (abstr {j = j} Γ⊢Π Γx⊢m) = inj₁ (j , Γ⊢Π)
-type-correctness (app Γ⊢m Γ⊢n c≡bn) =
-  [ (λ prf → inj₁ {!!})
+type-correctness (app Γ⊢m Γ⊢n c=bn) rewrite c=bn =
+  [ (λ prf → inj₁ (Π-gen₅ (proj₂ prf) Γ⊢n))
   ,  (λ prf → ⊥-elim (Π-not-sort (proj₂ prf)))
   ] (type-correctness Γ⊢m)
 type-correctness (conv-red {i = i} _ Γ⊢a _) = inj₁ (i , Γ⊢a)
 type-correctness (conv-exp {i = i} _ Γ⊢a _) = inj₁ (i , Γ⊢a)
 
 {-
-{-
--------------------------------------------------------------------------------
--- Helpers
-
-{-
-i≢j⇒sᵢ≢sⱼ : {i j : ℕ} → i ≢ j → s i ≢ s j
-i≢j⇒sᵢ≢sⱼ neq refl = neq refl
-
-sᵢ≢sⱼ⇒i≢j : {i j : ℕ} → s i ≢ s j → i ≢ j
-sᵢ≢sⱼ⇒i≢j neq refl = neq refl
-
-sᵢ≡sⱼ→i≡j : {i j : ℕ} → s i ≡ s j → i ≡ j
-sᵢ≡sⱼ→i≡j refl = refl
-
-∉Γ-strengthen : {x y : 𝕍} {Γ : ℂ} {a : 𝕋} →
-  x ∉ (Γ , y ∷ a) →
-  x ≢ y →
-  x ∉ Γ
-∉Γ-strengthen (∉Γ x∉Γ x≡y) x≢y = ⊥-elim (x≢y x≡y)
-
-lift-drop-lemma : {x : ℕ} {m : 𝕋} →
-  lift-map pred x (lift-map suc x m) ≡ m
-lift-drop-lemma {x} {m} = go x m where
-  l : ℕ → 𝕋 → 𝕋
-  l = lift-map suc
-  d : ℕ → 𝕋 → 𝕋
-  d = lift-map pred
-  go : (x : ℕ) → (m : 𝕋) →
-    d x (l x m) ≡ m
-  go x (s _) = refl
-  go x b⟨ _ ♯ _ ⟩ = refl
-  go x f⟨ y ♯ _ ⟩ with x ≤? y
-  go x f⟨ y ♯ _ ⟩    | yes p' with x ≤? suc y
-  go x f⟨ y ♯ _ ⟩    | yes p'    | yes _ = refl
-  go x f⟨ y ♯ _ ⟩    | yes p'    | no ¬p = ⊥-elim (¬p (m≤n⇒m≤1+n p'))
-  go x f⟨ y ♯ _ ⟩    | no ¬p with x ≤? y
-  go x f⟨ y ♯ _ ⟩    | no ¬p    | yes p = ⊥-elim (¬p p)
-  go x f⟨ y ♯ _ ⟩    | no ¬p    | no _ = refl
-  go x (λˢ i ∷ m ⇒ n) =
-    begin
-      d x (l x (λˢ i ∷ m ⇒ n))
-    ≡⟨⟩
-      d x (λˢ i ∷ (l x m) ⇒ (l (suc x) n))
-    ≡⟨⟩
-      λˢ i ∷ (d x (l x m)) ⇒ (d (suc x) (l (suc x) n))
-    ≡⟨ cong (λ { m → λˢ i ∷ m ⇒ (d (suc x) (l (suc x) n)) }) (go x m) ⟩
-      λˢ i ∷ m ⇒ (d (suc x) (l (suc x) n))
-    ≡⟨ cong (λ { n → λˢ i ∷ m ⇒ n }) (go (suc x) n) ⟩
-      λˢ i ∷ m ⇒ n
-    ∎
-  go x (Πˢ i ∷ m ⇒ n) =
-    begin
-      d x (l x (Πˢ i ∷ m ⇒ n))
-    ≡⟨⟩
-      Πˢ i ∷ (d x (l x m)) ⇒ (d (suc x) (l (suc x) n))
-    ≡⟨ cong₂ (λ { m n → Πˢ i ∷ m ⇒ n }) (go x m) (go (suc x) n) ⟩
-      Πˢ i ∷ m ⇒ n
-    ∎
-  go x (m § i § n) =
-    begin
-      d x (l x (m § i § n))
-    ≡⟨ cong₂ (λ { m n → m § i § n }) (go x m) (go x n) ⟩
-      m § i § n
-    ∎
-
-↓↑-id : {n : 𝕋} →
-  ↓ (↑ n) ≡ n
-↓↑-id = lift-drop-lemma {x = 0}
-
-sort-sub : {i j : ℕ} {m n : 𝕋} →
-  s i ≡ m [ n /0♯ j ] →
-  m ≡ s i ⊎ n ≡ s i
-sort-sub {m = s k} eq = inj₁ (sym eq)
-sort-sub {j = j} {m = b⟨ y ♯ k ⟩} eq with (y ♯ k) ≟ (0 ♯ j)
-...                                     | yes _ = inj₂ (sym (trans eq ↓↑-id))
-...                                     | no _ = ⊥-elim (s-not-var eq) where
-  s-not-var : {i x j : ℕ} → s i ≢ b⟨ x ♯ j ⟩
-  s-not-var ()
-sort-sub {j = j} {m = f⟨ x ♯ k ⟩} eq = ⊥-elim (s-not-var eq) where
-  s-not-var : {i x j : ℕ} → s i ≢ f⟨ x ♯ j ⟩
-  s-not-var ()
-
-sort-nf : {i : ℕ} → {a : 𝕋} →
-  s i ↠ᵇ a →
-  a ≡ s i
-sort-nf β-refl = refl
-
--------------------------------------------------------------------------------
--- Church-Rosser
-
-church-rosser : {m n₁ n₂ : 𝕋} →
-  m ↠ᵇ n₁ →
-  m ↠ᵇ n₂ →
-  Σ[ p ∈ 𝕋 ] (n₁ ↠ᵇ p) × (n₂ ↠ᵇ p)
-church-rosser = {!   !}
-
--------------------------------------------------------------------------------
--- Assume a Specification
-
-variable
-  𝕊 : Spec
-
--------------------------------------------------------------------------------
--- Inversion
-
-inversion : {x i y j : ℕ} {Γ Δ : ℂ} {a b m c : 𝕋} →
-  (x ♯ i) ∉ (Γ , y ♯ j ∷ a) →
-  𝕊 ∥ (((Γ , x ♯ i ∷ b) , y ♯ j ∷ a) ∘ Δ) ⊢ m ∷ c →
-  𝕊 ∥ (((Γ , y ♯ j ∷ a) , x ♯ i ∷ a) ∘ Δ) ⊢ m ∷ c
-inversion = {!   !}
--}
-
--------------------------------------------------------------------------------
--- Contexts
-
-∉-thinning : ∀ {Δ x y a Γ} →
-  x ∉ (Γ ∘ Δ) →
-  x ≢ y →
-  x ∉ ((Γ , y ∷ a) ∘ Δ)
-∉-thinning {∅} = ∉Γ 
-∉-thinning {_ , _ ∷ _} (∉Γ x∉Γ∘Δ x≢z) x≢y = ∉Γ (∉-thinning x∉Γ∘Δ x≢y) x≢z 
-
-∉-strengthen : ∀ {Δ x Γ y a} →
-  x ∉ ((Γ , y ∷ a) ∘ Δ) →
-  x ∉ (Γ ∘ Δ)
-∉-strengthen {∅} (∉Γ x∉Γ _) = x∉Γ
-∉-strengthen {Δ , z ∷ b} (∉Γ x∉Γ,y,Δ x≢z) = ∉Γ (∉-strengthen x∉Γ,y,Δ) x≢z 
-
-∉-to-≢ : ∀ {Δ x Γ y a} →
-  x ∉ ((Γ , y ∷ a) ∘ Δ) →
-  x ≢ y
-∉-to-≢ {∅} (∉Γ _ x≢y) = x≢y
-∉-to-≢ {Δ , z ∷ b} (∉Γ x∉Γ,y,Δ _) = ∉-to-≢ x∉Γ,y,Δ
-
--------------------------------------------------------------------------------
--- Thinning
-
-thinning : ∀ {Δ b Γ x a j m} →
-  x ∉ (Γ ∘ Δ) →
-  Γ ⊢ b ∷ s j →
-  (Γ ∘ Δ) ⊢ m ∷ a →
-  ((Γ , x ∷ b) ∘ Δ) ⊢ m ∷ a
-thinning {∅} x∉ΓΔ Γ⊢b (axiom i<n) = sort-weaken x∉ΓΔ Γ⊢b (axiom i<n)
-thinning {∅} x∉ΓΔ Γ⊢b (var-intro y∉ΓΔ ΓΔ⊢c) = var-weaken x∉ΓΔ Γ⊢b (var-intro y∉ΓΔ ΓΔ⊢c) 
-thinning {∅} x∉ΓΔ Γ⊢b (sort-weaken y∉ΓΔ ΓΔ⊢s ΓΔ⊢c) = sort-weaken x∉ΓΔ Γ⊢b (sort-weaken y∉ΓΔ ΓΔ⊢s ΓΔ⊢c)
-thinning {∅} x∉ΓΔ Γ⊢b (var-weaken fr md cd) = var-weaken x∉ΓΔ Γ⊢b (var-weaken fr md cd)
-thinning {∅} x∉ΓΔ Γ⊢b (pi-intro {a} rl sd td) = pi-intro rl (thinning x∉ΓΔ Γ⊢b sd)
-  λ { {y} (∉Γ not-in not-eq) → thinning (∉Γ x∉ΓΔ (≢-sym not-eq)) Γ⊢b (td not-in) }
-thinning {∅} x∉ΓΔ Γ⊢b (abstr {a} pid md) = abstr (thinning x∉ΓΔ Γ⊢b pid)
-  λ { {y} (∉Γ not-in not-eq) → thinning {∅ , y ∷ a} ((∉Γ x∉ΓΔ (≢-sym not-eq))) Γ⊢b (md not-in) }
-thinning {∅} x∉ΓΔ Γ⊢b (app md nd ty-eq) =
-  app (thinning x∉ΓΔ Γ⊢b md) (thinning x∉ΓΔ Γ⊢b nd) ty-eq
-thinning {∅} x∉ΓΔ Γ⊢b (conv-red md bd red) =
-  conv-red (thinning x∉ΓΔ Γ⊢b md) (thinning x∉ΓΔ Γ⊢b bd) red
-thinning {∅} x∉ΓΔ Γ⊢b (conv-exp md bd exp) =
-  conv-exp (thinning x∉ΓΔ Γ⊢b md) (thinning x∉ΓΔ Γ⊢b bd) exp
-thinning {Δ , y ∷ c} (∉Γ not-in not-eq) Γ⊢b (var-intro fr ad) =
-  var-intro (∉-thinning fr (≢-sym not-eq)) (thinning not-in Γ⊢b ad)
-thinning {Δ , y ∷ c} (∉Γ x∉ΓΔ x≢y) Γ⊢b (sort-weaken y∉ΓΔ ΓΔ⊢c ΓΔ⊢s) = 
-  sort-weaken
-    (∉-thinning y∉ΓΔ (≢-sym x≢y))
-    (thinning x∉ΓΔ Γ⊢b ΓΔ⊢c)
-    (thinning x∉ΓΔ Γ⊢b ΓΔ⊢s)
-thinning {Δ , y ∷ c} (∉Γ x∉ΓΔ x≢y) Γ⊢b (var-weaken y∉ΓΔ ΓΔ⊢c ΓΔ⊢z) = 
-  var-weaken
-    (∉-thinning y∉ΓΔ (≢-sym x≢y))
-    (thinning x∉ΓΔ Γ⊢b ΓΔ⊢c)
-    (thinning x∉ΓΔ Γ⊢b ΓΔ⊢z)
-thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (pi-intro rl ΓΔy⊢a ΓΔyx⊢b) =
-  pi-intro rl
-    (thinning x∉ΓΔy Γ⊢b ΓΔy⊢a)
-    λ { {z} (∉Γ z∉ΓxΔ z≢y) →
-      thinning
-        (∉Γ x∉ΓΔy (≢-sym (∉-to-≢ z∉ΓxΔ)))
-        Γ⊢b
-        (ΓΔyx⊢b {z} (∉Γ (∉-strengthen z∉ΓxΔ) z≢y)) }
-thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (abstr ΓΔy⊢Π ΓΔyz⊢m) = 
-  abstr
-    (thinning x∉ΓΔy Γ⊢b ΓΔy⊢Π)
-    λ { {z} (∉Γ z∉ΓxΔ z≢y) →
-      thinning
-        (∉Γ x∉ΓΔy ((≢-sym (∉-to-≢ z∉ΓxΔ))))
-        Γ⊢b
-        (ΓΔyz⊢m {z} (∉Γ (∉-strengthen z∉ΓxΔ) z≢y)) }
-thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (app ΓΔy⊢m ΓΔy⊢n a≡b[n]) = 
-  app
-    (thinning x∉ΓΔy Γ⊢b ΓΔy⊢m)
-    (thinning x∉ΓΔy Γ⊢b ΓΔy⊢n)
-    a≡b[n]
-thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (conv-red ΓΔy⊢m ΓΔy⊢b b↠a) = 
-  conv-red
-    (thinning x∉ΓΔy Γ⊢b ΓΔy⊢m)
-    (thinning x∉ΓΔy Γ⊢b ΓΔy⊢b)
-    b↠a
-thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (conv-exp ΓΔy⊢m ΓΔy⊢b a↠b) = 
-  conv-exp
-    (thinning x∉ΓΔy Γ⊢b ΓΔy⊢m)
-    (thinning x∉ΓΔy Γ⊢b ΓΔy⊢b)
-    a↠b
-
--------------------------------------------------------------------------------
--- Substitution Lemma
-
-noop-sub : ∀ {Γ m a x n} →
-  Γ ⊢ m ∷ a →
-  x ∉ Γ →
-  m [ n / x ] ≡ m
-noop-sub (axiom _) x∉Γ = refl
-noop-sub (var-intro {x = y} y∉Γ Γ⊢a) x∉Γ,y = {!noop-sub !}
-noop-sub (sort-weaken x Γ⊢m Γ⊢m₁) x∉Γ = {!!}
-noop-sub (var-weaken x Γ⊢m Γ⊢m₁) x∉Γ = {!!}
-noop-sub (pi-intro x Γ⊢m x₁) x∉Γ = {!!}
-noop-sub (abstr Γ⊢m x) x∉Γ = {!!}
-noop-sub (app Γ⊢m Γ⊢m₁ x) x∉Γ = {!!}
-noop-sub (conv-red Γ⊢m Γ⊢m₁ x) x∉Γ = {!!}
-noop-sub (conv-exp Γ⊢m Γ⊢m₁ x) x∉Γ = {!!}
-
-var-type-correctness : ∀ {Γ x i a} →
-  Γ ⊢ f⟨ x ♯ i ⟩ ∷ a →
-  Γ ⊢ a ∷ s i
-var-type-correctness = {!!}
-
-substitution : ∀ {Δ Γ x a m n b} →
-  Γ ⊢ n ∷ a →
-  ((Γ , x ∷ a) ∘ Δ) ⊢ m ∷ b →
-  (Γ ∘ (Δ [ n / x ]ᶜ))  ⊢ m [ n / x ] ∷ (b [ n / x ])
-substitution {Δ = ∅} {x = x} {n = n} Γ⊢n (var-intro {a = a} x∉Γ Γ⊢a)
-  rewrite (noop-sub {m = a} {n = n} Γ⊢a x∉Γ)
-  with x Data.String.≟ x
-...  | yes _ = Γ⊢n
-...  | no x≢x = ⊥-elim (x≢x refl)
-substitution {∅} Γ⊢n (sort-weaken _ _ Γ⊢s) = Γ⊢s
-substitution {∅} {x = x} {n = n} {b = b} Γ⊢n (var-weaken {y} {a = b} {b = c} x∉Γ Γ⊢c Γ⊢y)
-  rewrite (noop-sub {m = b} {n = n} (var-type-correctness Γ⊢y) x∉Γ)
-  with y Data.String.≟ x
-...  | yes _ = {!!}
-...  | no _ = Γ⊢y
-substitution {∅} Γ⊢n (pi-intro rl Γ,x⊢a Γ,x,y⊢b) = 
-  pi-intro rl
-    (substitution Γ⊢n Γ,x⊢a)
-    λ {y} → λ y∉Γ → {!
-      substitution Γ⊢n (Γ,x,y⊢b {y} (∉Γ y∉Γ ?))  !} 
-substitution {∅} Γ⊢n (abstr md x) = {!!}
-substitution {∅} Γ⊢n (app md md₁ x) = {!!}
-substitution {∅} Γ⊢n (conv-red md md₁ x) = {!!}
-substitution {∅} Γ⊢n (conv-exp md md₁ x) = {!!}
-substitution {Δ , z ∷ d} Γ⊢n md = {!!}
-
-{-
--------------------------------------------------------------------------------
--- Contexts in Judgments are Well-formed
-
-Γ-wf : {Γ : ℂ} {m a : 𝕋} →
-  𝕊 ∥ Γ ⊢ m ∷ a →
-  WFC 𝕊 Γ
-Γ-wf = go where
-  go : {Γ : ℂ} {m a : 𝕋} → 𝕊 ∥ Γ ⊢ m ∷ a → WFC 𝕊 Γ
-  go (axiom x) = ∅-wf
-  go (var-intro fresh deriv) = ext-wf fresh deriv (go (deriv))
-  go (sort-weaken fresh _ deriv) = ext-wf fresh deriv (go (deriv))
-  go (var-weaken fresh _ deriv) = ext-wf fresh deriv (go (deriv))
-  go (pi-intro _ deriv _) = go deriv
-  go (abstr _ deriv) = go deriv
-  go (app deriv _ _) = go deriv
-  go (conv-red deriv _ _) = go deriv
-  go (conv-exp deriv _ _) = go deriv
-
--------------------------------------------------------------------------------
--- Start Lemma
-
-start : {i : ℕ} {Γ : ℂ} →
-  i < Spec.t 𝕊 →
-  WFC 𝕊 Γ →
-  𝕊 ∥ Γ ⊢ s i ∷ s (suc i)
-start i<t ∅-wf = axiom i<t
-start i<t (ext-wf fresh a-deriv Γ-wf) = sort-weaken fresh (start i<t Γ-wf) a-deriv
- 
-
 -------------------------------------------------------------------------------
 -- Generation Lemma (Sorts)
 
@@ -587,30 +324,6 @@ s-strengthen (conv-exp m-deriv a-deriv b↠a) = {!!}
 Π-gen₂ (pi-intro x pi-deriv pi-deriv₁) n-deriv = {!   !}
 Π-gen₂ (conv-red pi-deriv pi-deriv₁ x) n-deriv = {!   !}
 Π-gen₂ (conv-exp pi-deriv pi-deriv₁ x) n-deriv = {!   !}
-
--------------------------------------------------------------------------------
--- Type Correctness
-
-type-correctness : {Γ : ℂ} {m a : 𝕋} →
-  𝕊 ∥ Γ ⊢ m ∷ a →
-  a ≢ s (Spec.t 𝕊) →
-  Σ[ i ∈ ℕ ] 𝕊 ∥ Γ ⊢ a ∷ s i
-type-correctness (axiom {i = i} i<t) prf = (suc (suc i) , axiom (≤∧≢⇒< i<t (sᵢ≢sⱼ⇒i≢j prf)))
-type-correctness (var-intro {i = i} fresh deriv) _ = (i , weaken fresh deriv deriv)
-type-correctness (sort-weaken fresh m-deriv b-deriv) prf =
-  let (i , done) = type-correctness m-deriv prf in
-    (i , weaken fresh done b-deriv)
-type-correctness (var-weaken fresh m-deriv b-deriv) prf = 
-  let (i , done) = type-correctness m-deriv prf in
-    (i , weaken fresh done b-deriv)
-type-correctness (pi-intro {j = j} _ a-deriv b-deriv) prf =
-  (suc j , s-strengthen (s-gen₃ (proj₂ (type-correctness b-deriv prf))))
-type-correctness (abstr {j = j} _ t-deriv) _ = (j , t-deriv)
-type-correctness {Γ = Γ} (app {c = c} m-deriv n-deriv c≡sub) c≢sₜ = 
-  let (j , Π-deriv) = type-correctness m-deriv (λ { () }) in
-    (j , subst (λ { n → _ ∥ Γ ⊢ n ∷ s j }) (sym c≡sub) (Π-gen₂ Π-deriv n-deriv))
-type-correctness (conv-red {i = i} _ a-deriv _) _ = (i , a-deriv)
-type-correctness (conv-exp {i = i} _ a-deriv _) _ = (i , a-deriv)
 
 -------------------------------------------------------------------------------
 -- Top Sort Lemma
@@ -682,8 +395,4 @@ no-app-sₜ (conv-exp _ deriv _) = sₜ-not-typable deriv
 Γ⊬mn∷sₜ : {i : ℕ} → {Γ : ℂ} → {m n : 𝕋} →
   𝕊 ∥ Γ ⊬ m § i § n ∷ s (Spec.t 𝕊)
 Γ⊬mn∷sₜ deriv = no-app-sₜ deriv refl
--}
-
--}
-
 -}
