@@ -23,6 +23,7 @@ open import Specification
 module Basic (𝕊 : Spec) where
 
 open import Data.Nat using (ℕ; suc)
+open import Data.String using (String)
 open import Data.Product using (_×_; proj₁; proj₂; _,_; ∃; ∃-syntax; map₂)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 import Relation.Binary.PropositionalEquality as Eq
@@ -89,7 +90,7 @@ data _∉ᵗ_ : ℕ → 𝕋 → Set where
 Γ-wf : ∀ {Γ m a} →
   Γ ⊢ m ∷ a →
   WFC Γ
-Γ-wf = ?
+Γ-wf = {!!}
 
 -------------------------------------------------------------------------------
 -- Start Lemma
@@ -99,7 +100,7 @@ start : ∀ {Γ i j} →
   WFC Γ →
   Γ ⊢ s i ∷ s j
 start i<t ∅-wf = axiom i<t
-start i<t (ext-wf fresh a-deriv Γ-wf) = ?
+start i<t (ext-wf fresh a-deriv Γ-wf) = {!!}
 
 -------------------------------------------------------------------------------
 -- Thinning
@@ -178,11 +179,27 @@ weaken = thinning
 -------------------------------------------------------------------------------
 -- Substitution
 
+lemma : ∀ {Γ m n a x} →
+  Γ ⊢ m ∷ a →
+  x ∉ Γ →
+  m [ n / x ] ≡ m
+lemma = {!!}
+
 substitution : ∀ {Δ Γ x a m n b} →
   Γ ⊢ n ∷ a →
   (Γ , x ∷ a) ∘ Δ ⊢ m ∷ b →
   Γ ∘ (Δ [ n / x ]ᶜ)  ⊢ m [ n / x ] ∷ b [ n / x ]
-substitution = {!!}
+substitution {∅} {x = x} Γ⊢n (var-intro x∉Γ Γ⊢a) with x Data.String.≟ x
+... | yes _ = ?
+... | no _ = ?
+substitution {∅} Γ⊢n (sort-weaken x x₁ Γx⊢m Γx⊢m₁) = {!!}
+substitution {∅} Γ⊢n (var-weaken x Γx⊢m Γx⊢m₁) = {!!}
+substitution {∅} Γ⊢n (pi-intro x Γx⊢m x₁) = {!!}
+substitution {∅} Γ⊢n (abstr Γx⊢m x) = {!!}
+substitution {∅} Γ⊢n (app Γx⊢m Γx⊢m₁ x) = {!!}
+substitution {∅} Γ⊢n (conv-red Γx⊢m Γx⊢m₁ x) = {!!}
+substitution {∅} Γ⊢n (conv-exp Γx⊢m Γx⊢m₁ x) = {!!}
+substitution {Δ , y ∷ c} Γ⊢n ΓxΔ⊢m = {!!}
 {-
 substitution {Δ = ∅} {x = x} {n = n} Γ⊢n (var-intro {a = a} x∉Γ Γ⊢a)
   rewrite (noop-sub {m = a} {n = n} Γ⊢a x∉Γ)
