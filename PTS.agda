@@ -7,8 +7,7 @@ open import Specification
 
 module PTS (𝕊 : Spec) where
 
-open import Data.Nat using (ℕ; suc; pred; _≤?_)
-open import Data.String using (String)
+open import Data.Nat using (ℕ; suc; pred; _≤?_; _≟_)
 open import Relation.Nullary using (yes; no; ¬_)
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_)
 
@@ -21,7 +20,7 @@ infix 22 Π_·_
 infix 22 _§_
 data 𝕋 : Set where
   s_ : Spec.Sort 𝕊 → 𝕋
-  f⟨_♯_⟩ : String → Spec.Sort 𝕊 → 𝕋
+  f⟨_♯_⟩ : ℕ → Spec.Sort 𝕊 → 𝕋
   b⟨_⟩ : ℕ → 𝕋
   ƛ_·_ : 𝕋 → 𝕋 → 𝕋
   Π_·_ : 𝕋 → 𝕋 → 𝕋
@@ -31,9 +30,9 @@ data 𝕋 : Set where
 -- Substitution and Lifting
 
 infix 25 _[_/_]
-_[_/_] : 𝕋 → 𝕋 → String → 𝕋
+_[_/_] : 𝕋 → 𝕋 → ℕ → 𝕋
 s i [ n / y ] = s i
-f⟨ x ♯ i ⟩ [ n / y ] with x Data.String.≟ y
+f⟨ x ♯ i ⟩ [ n / y ] with x ≟ y
 ...                  | yes _ = n
 ...                  | no _ =  f⟨ x ♯ i ⟩
 b⟨ x ⟩ [ n / y ] = b⟨ x ⟩
@@ -48,7 +47,7 @@ m [ n ]⁰ = m [ n / 0 ]ᵇ where
   _[_/_]ᵇ : 𝕋 → 𝕋 → ℕ → 𝕋
   s i [ n / y ]ᵇ = s i
   f⟨ x ♯ i ⟩ [ n / y ]ᵇ = f⟨ x ♯ i ⟩
-  b⟨ x ⟩ [ n / y ]ᵇ with x Data.Nat.≟ y
+  b⟨ x ⟩ [ n / y ]ᵇ with x ≟ y
   ...               | yes _ = n
   ...               | no _ = b⟨ x ⟩
   (ƛ a · m) [ n / y ]ᵇ = ƛ a [ n / y ]ᵇ · (m [ n / suc y ]ᵇ)
@@ -103,9 +102,9 @@ data _=ᵇ_ : 𝕋 → 𝕋 → Set where
 infix 22 _,_∷_
 data ℂ : Set where
   ∅ : ℂ
-  _,_∷_ : ℂ → String → 𝕋 → ℂ
+  _,_∷_ : ℂ → ℕ → 𝕋 → ℂ
 
-data _∉_ : String → ℂ → Set where
+data _∉_ : ℕ → ℂ → Set where
   ∉∅ : ∀ {x} → x ∉ ∅
   ∉Γ : ∀ {x y Γ a} →
     x ∉ Γ →
@@ -113,7 +112,7 @@ data _∉_ : String → ℂ → Set where
     x ∉ (Γ , y ∷ a)
 
 infix 25 _[_/_]ᶜ
-_[_/_]ᶜ : ℂ → 𝕋 → String → ℂ
+_[_/_]ᶜ : ℂ → 𝕋 → ℕ → ℂ
 ∅ [ _ / _ ]ᶜ = ∅
 (Γ , x ∷ a) [ n / y ]ᶜ = Γ [ n / y ]ᶜ , x ∷ a [ n / y ]
 
@@ -131,15 +130,12 @@ data _⊢_∷_ : ℂ → 𝕋 → 𝕋 → Set₁ where
     -----------------------------------
     ∅ ⊢ s i ∷ s j
 
-  var-intro : ∀ {x i Γ a} →
-    x ∉ Γ →
+  var-intro : ∀ {x i Γ a} → x ∉ Γ →
     Γ ⊢ a ∷ s i →
     -----------------------------------
     Γ , x ∷ a ⊢ f⟨ x ♯ i ⟩ ∷ a
 
-  sort-weaken : ∀ {x i j k Γ b} →
-    Spec.axiom 𝕊 j k →
-    x ∉ Γ →
+  sort-weaken : ∀ {x i j k Γ b} → Spec.axiom 𝕊 j k → x ∉ Γ →
     Γ ⊢ b ∷ s i →
     Γ ⊢ s j ∷ s k →
     -----------------------------------
@@ -152,27 +148,26 @@ data _⊢_∷_ : ℂ → 𝕋 → 𝕋 → Set₁ where
     -----------------------------------
     Γ , y ∷ b ⊢ f⟨ x ♯ i ⟩ ∷ a
 
-  pi-intro : ∀ {a i j k Γ b} →
-    Spec.rule 𝕊 i j k →
+  pi-intro : ∀ {a i j k Γ b x} → Spec.rule 𝕊 i j k →
     Γ ⊢ a ∷ s i →
-    (∀ {x} → x ∉ Γ →
-      Γ , x ∷ a ⊢ b [ f⟨ x ♯ i ⟩ ]⁰ ∷ s j) →
+    Γ , x ∷ a ⊢ b ∷ s j →
     -----------------------------------
-    Γ ⊢ Π a · b ∷ s k
+    Γ ⊢ Π a · (b [ b⟨ 0 ⟩ / x ]) ∷ s k
 
-  abstr : ∀ {a i j Γ m b} →
-    Γ ⊢ Π a · b ∷ s j →
-    (∀ {x} → x ∉ Γ →
-      Γ , x ∷ a ⊢ m [ f⟨ x ♯ i ⟩ ]⁰ ∷ b [ f⟨ x ♯ i ⟩ ]⁰) →
+  abstr : ∀ {a i j k Γ m b x} →
+    Γ ⊢ a ∷ s i →
+    Γ , x ∷ a ⊢ b ∷ s j →
+    Spec.rule 𝕊 i j k →
+    Γ , x ∷ a ⊢ m ∷ b →
     -----------------------------------
-    Γ ⊢ ƛ a · m ∷ Π a · b
+    Γ ⊢ ƛ a · (m [ b⟨ 0 ⟩ / x ]) ∷ Π a · b [ b⟨ 0 ⟩ / x ]
 
-  app : ∀ {Γ m n a b c} →
-    Γ ⊢ m ∷ Π a · b →
+  app : ∀ {Γ m n x a b j} →
+    Γ , x ∷ a ⊢ b ∷ s j →
+    Γ ⊢ m ∷ Π a · b [ b⟨ 0 ⟩ / x ] →
     Γ ⊢ n ∷ a →
-    c ≡ b [ n ]⁰ →
     -----------------------------------
-    Γ ⊢ m § n ∷ c
+    Γ ⊢ m § n ∷ b [ n / x ]
 
   conv-red : ∀ {i Γ m a b} →
     Γ ⊢ m ∷ a →

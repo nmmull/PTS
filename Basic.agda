@@ -22,9 +22,8 @@ open import Specification
 
 module Basic (𝕊 : Spec) where
 
-open import Data.Nat using (ℕ; suc)
-open import Data.String using (String)
-open import Data.Product using (_×_; proj₁; proj₂; _,_; ∃; ∃-syntax; map₂)
+open import Data.Nat using (ℕ; suc; _+_)
+open import Data.Product using (_×_; proj₁; proj₂; _,_; ∃; ∃-syntax; map₂; Σ; Σ-syntax)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; _≢_; refl; cong; cong₂; subst; sym; trans; ≢-sym)
@@ -104,7 +103,7 @@ start i<t (ext-wf fresh a-deriv Γ-wf) = {!!}
 
 -------------------------------------------------------------------------------
 -- Thinning
-
+{-
 thinning : ∀ {Δ b Γ x a j m} →
   x ∉ (Γ ∘ Δ) →
   Γ ⊢ b ∷ s j →
@@ -115,12 +114,13 @@ thinning {∅} x∉ΓΔ Γ⊢b (var-intro y∉ΓΔ ΓΔ⊢c) = var-weaken x∉Γ
 thinning {∅} x∉ΓΔ Γ⊢b (sort-weaken ax-ij y∉ΓΔ ΓΔ⊢s ΓΔ⊢c) =
   sort-weaken ax-ij x∉ΓΔ Γ⊢b (sort-weaken ax-ij y∉ΓΔ ΓΔ⊢s ΓΔ⊢c)
 thinning {∅} x∉ΓΔ Γ⊢b (var-weaken fr md cd) = var-weaken x∉ΓΔ Γ⊢b (var-weaken fr md cd)
-thinning {∅} x∉ΓΔ Γ⊢b (pi-intro {a} rl sd td) = pi-intro rl (thinning x∉ΓΔ Γ⊢b sd)
-  λ { {y} (∉Γ not-in not-eq) → thinning (∉Γ x∉ΓΔ (≢-sym not-eq)) Γ⊢b (td not-in) }
-thinning {∅} x∉ΓΔ Γ⊢b (abstr {a} pid md) = abstr (thinning x∉ΓΔ Γ⊢b pid)
-  λ { {y} (∉Γ not-in not-eq) → thinning {∅ , y ∷ a} ((∉Γ x∉ΓΔ (≢-sym not-eq))) Γ⊢b (md not-in) }
-thinning {∅} x∉ΓΔ Γ⊢b (app md nd ty-eq) =
-  app (thinning x∉ΓΔ Γ⊢b md) (thinning x∉ΓΔ Γ⊢b nd) ty-eq
+thinning {∅} x∉ΓΔ Γ⊢b (pi-intro {a} rl sd td) = {!!}
+--pi-intro rl (thinning x∉ΓΔ Γ⊢b sd)
+--  λ { {y} (∉Γ not-in not-eq) → thinning (∉Γ x∉ΓΔ (≢-sym not-eq)) Γ⊢b (td not-in) }
+thinning {∅} x∉ΓΔ Γ⊢b m = {!!}
+--abstr (thinning x∉ΓΔ Γ⊢b pid)
+--  λ { {y} (∉Γ not-in not-eq) → thinning {∅ , y ∷ a} ((∉Γ x∉ΓΔ (≢-sym not-eq))) Γ⊢b (md not-in) }
+thinning {∅} x∉ΓΔ Γ⊢b a = ?
 thinning {∅} x∉ΓΔ Γ⊢b (conv-red md bd red) =
   conv-red (thinning x∉ΓΔ Γ⊢b md) (thinning x∉ΓΔ Γ⊢b bd) red
 thinning {∅} x∉ΓΔ Γ⊢b (conv-exp md bd exp) =
@@ -140,24 +140,25 @@ thinning {Δ , y ∷ c} (∉Γ x∉ΓΔ x≢y) Γ⊢b (var-weaken y∉ΓΔ ΓΔ�
 thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (pi-intro rl ΓΔy⊢a ΓΔyx⊢b) =
   pi-intro rl
     (thinning x∉ΓΔy Γ⊢b ΓΔy⊢a)
-    λ { {z} (∉Γ z∉ΓxΔ z≢y) →
+    {!!}
+    {- λ { {z} (∉Γ z∉ΓxΔ z≢y) →
       thinning
         (∉Γ x∉ΓΔy (≢-sym (∉-to-≢ z∉ΓxΔ)))
         Γ⊢b
-        (ΓΔyx⊢b {z} (∉Γ (∉-strengthen z∉ΓxΔ) z≢y)) }
+        (ΓΔyx⊢b {z} (∉Γ (∉-strengthen z∉ΓxΔ) z≢y)) } -}
 thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (abstr ΓΔy⊢Π ΓΔyz⊢m) = 
   abstr
     (thinning x∉ΓΔy Γ⊢b ΓΔy⊢Π)
-    λ { {z} (∉Γ z∉ΓxΔ z≢y) →
+    {!!}
+    {-λ { {z} (∉Γ z∉ΓxΔ z≢y) →
       thinning
         (∉Γ x∉ΓΔy ((≢-sym (∉-to-≢ z∉ΓxΔ))))
         Γ⊢b
-        (ΓΔyz⊢m {z} (∉Γ (∉-strengthen z∉ΓxΔ) z≢y)) }
-thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (app ΓΔy⊢m ΓΔy⊢n a≡b[n]) = 
+        (ΓΔyz⊢m {z} (∉Γ (∉-strengthen z∉ΓxΔ) z≢y)) }-}
+thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (app ΓΔy⊢m ΓΔy⊢n) = 
   app
     (thinning x∉ΓΔy Γ⊢b ΓΔy⊢m)
     (thinning x∉ΓΔy Γ⊢b ΓΔy⊢n)
-    a≡b[n]
 thinning {Δ , y ∷ c} x∉ΓΔy Γ⊢b (conv-red ΓΔy⊢m ΓΔy⊢b b↠a) = 
   conv-red
     (thinning x∉ΓΔy Γ⊢b ΓΔy⊢m)
@@ -175,7 +176,7 @@ weaken : ∀ {Γ x a b m j} →
   Γ ⊢ m ∷ a →
   Γ , x ∷ b ⊢ m ∷ a
 weaken = thinning
-
+-}
 -------------------------------------------------------------------------------
 -- Substitution
 
@@ -189,7 +190,16 @@ substitution : ∀ {Δ Γ x a m n b} →
   Γ ⊢ n ∷ a →
   (Γ , x ∷ a) ∘ Δ ⊢ m ∷ b →
   Γ ∘ (Δ [ n / x ]ᶜ)  ⊢ m [ n / x ] ∷ b [ n / x ]
-substitution {∅} {x = x} Γ⊢n (var-intro x∉Γ Γ⊢a) with x Data.String.≟ x
+substitution (axiom x) = {!!}
+substitution (var-intro x Γ⊢n) = {!!}
+substitution (sort-weaken x x₁ Γ⊢n Γ⊢n₁) = {!!}
+substitution (var-weaken x Γ⊢n Γ⊢n₁) = {!!}
+substitution (pi-intro x Γ⊢n x₁) = {!!}
+substitution (abstr Γ⊢n x) = {!!}
+substitution (app Γ⊢n Γ⊢n₁) = {!!}
+substitution (conv-red Γ⊢n Γ⊢n₁ x) = {!!}
+substitution (conv-exp Γ⊢n Γ⊢n₁ x) = {!!}
+{- substitution {∅} {x = x} Γ⊢n (var-intro x∉Γ Γ⊢a) with x Data.String.≟ x
 ... | yes _ = ?
 ... | no _ = ?
 substitution {∅} Γ⊢n (sort-weaken x x₁ Γx⊢m Γx⊢m₁) = {!!}
@@ -200,6 +210,7 @@ substitution {∅} Γ⊢n (app Γx⊢m Γx⊢m₁ x) = {!!}
 substitution {∅} Γ⊢n (conv-red Γx⊢m Γx⊢m₁ x) = {!!}
 substitution {∅} Γ⊢n (conv-exp Γx⊢m Γx⊢m₁ x) = {!!}
 substitution {Δ , y ∷ c} Γ⊢n ΓxΔ⊢m = {!!}
+-}
 {-
 substitution {Δ = ∅} {x = x} {n = n} Γ⊢n (var-intro {a = a} x∉Γ Γ⊢a)
   rewrite (noop-sub {m = a} {n = n} Γ⊢a x∉Γ)
@@ -226,7 +237,7 @@ substitution {Δ , z ∷ d} Γ⊢n md = {!!}
 
 -------------------------------------------------------------------------------
 -- Generation Lemma (Π-Types)
-
+{-
 Π-gen₁ : ∀ {Γ a b c} →
   Γ ⊢ Π a · b ∷ c →
   ∃[ i ] ∃[ j ] ∃[ k ] Spec.rule 𝕊 i j k
@@ -256,19 +267,16 @@ substitution {Δ , z ∷ d} Γ⊢n md = {!!}
 Π-gen₄ (conv-red Γ⊢Π _ _) = Π-gen₄ Γ⊢Π
 Π-gen₄ (conv-exp Γ⊢Π _ _) = Π-gen₄ Γ⊢Π
 
-Π-gen₅ : ∀ {Γ a b c n} →
+fresh : ∀ {Γ} → Σ[ x ∈ ℕ ] x ∉ Γ
+fresh {Γ = ∅} = (0 , ∉∅)
+fresh {Γ = (Γ' , x ∷ a)} = (proj₁ (fresh {Γ = Γ'}) + x , ∉Γ {!!} {!!}) 
+-}
+Π-gen₅ : ∀ {Γ a b c n j x i} →
   Γ ⊢ Π a · b ∷ c →
+  Γ , x ∷ a ⊢ b [ f⟨ x ♯ i ⟩ ]⁰ ∷ s j →
   Γ ⊢ n ∷ a →
-  ∃[ j ] Γ ⊢ b [ n ]⁰ ∷ s j
-Π-gen₅ {b = s i} (pi-intro {j = j} _ _ Γx⊢b) Γ⊢n = (j , {!!})
-Π-gen₅ {b = f⟨ y ♯ l ⟩} (pi-intro {j = j} rl Γ⊢a Γx⊢b) Γ⊢n = (j , {!!})
-Π-gen₅ {b = b⟨ x ⟩} (pi-intro rl Γ⊢a Γx⊢b) Γ⊢n = {!!}
-Π-gen₅ {b = ƛ b · b₁} (pi-intro rl Γ⊢a Γx⊢b) Γ⊢n = {!!}
-Π-gen₅ {b = Π b · b₁} (pi-intro rl Γ⊢a Γx⊢b) Γ⊢n = {!!}
-Π-gen₅ {b = b § b₁} (pi-intro rl Γ⊢a Γx⊢b) Γ⊢n = {!!}
-Π-gen₅ (conv-red Γ⊢Π Γ⊢Π₁ x) Γ⊬ = {!!}
-Π-gen₅ (conv-exp Γ⊢Π Γ⊢Π₁ x) Γ⊬ = {!!}
-
+  Γ ⊢ b [ n ]⁰ ∷ s j
+Π-gen₅ Γ⊢Π Γx⊢b Γ⊢n = {!!}
 -------------------------------------------------------------------------------
 -- Type Correctness
 
@@ -282,13 +290,13 @@ type-correctness (var-weaken y∉Γ Γ⊢b Γ⊢x) =
   [ (λ prf → inj₁ ((proj₁ prf , weaken y∉Γ Γ⊢b (proj₂ prf)))) , inj₂ ] (type-correctness Γ⊢x)
 type-correctness (pi-intro {k = k} _ _ _) = inj₂ (k , refl)
 type-correctness (abstr {j = j} Γ⊢Π Γx⊢m) = inj₁ (j , Γ⊢Π)
-type-correctness (app Γ⊢m Γ⊢n c=bn) rewrite c=bn =
-  [ (λ prf → inj₁ (Π-gen₅ (proj₂ prf) Γ⊢n))
+type-correctness (app Γ⊢m Γ⊢n) =
+  [ (λ prf → {!!})
   ,  (λ prf → ⊥-elim (Π-not-sort (proj₂ prf)))
   ] (type-correctness Γ⊢m)
 type-correctness (conv-red {i = i} _ Γ⊢a _) = inj₁ (i , Γ⊢a)
 type-correctness (conv-exp {i = i} _ Γ⊢a _) = inj₁ (i , Γ⊢a)
-
+{-
 {-
 -------------------------------------------------------------------------------
 -- Generation Lemma (Sorts)
@@ -412,4 +420,5 @@ no-app-sₜ (conv-exp _ deriv _) = sₜ-not-typable deriv
 Γ⊬mn∷sₜ : {i : ℕ} → {Γ : ℂ} → {m n : 𝕋} →
   𝕊 ∥ Γ ⊬ m § i § n ∷ s (Spec.t 𝕊)
 Γ⊬mn∷sₜ deriv = no-app-sₜ deriv refl
+-}
 -}
